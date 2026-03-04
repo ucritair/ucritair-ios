@@ -203,7 +203,7 @@ Every view is a SwiftUI struct. Views are **declarative** — they describe
 ## Data Flow: From Sensor to Screen
 
 ```
-    Hardware Sensor (e.g., SCD41 CO₂ sensor)
+    Hardware Sensor (e.g., Senseair Sunrise CO₂ sensor)
            │
            ▼
     Device Firmware (Zephyr RTOS on nRF5340)
