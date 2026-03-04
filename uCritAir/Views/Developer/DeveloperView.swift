@@ -1,70 +1,11 @@
-// ────────────────────────────────────────────────────────────────────────────
-// DeveloperView.swift  (Advanced tab)
-// uCritAir
-// ────────────────────────────────────────────────────────────────────────────
-//
-// PURPOSE:
-//   The Advanced tab (tab index 3 in the root TabView) provides power-user
-//   tools for device diagnostics and troubleshooting. It allows users to:
-//
-//   - Synchronize or inspect the device's internal clock.
-//   - Read and write BLE characteristics for advanced configuration.
-//   - Inspect individual log cells stored on the device.
-//
-//   The view is organized into three sections:
-//
-//   1. **Time Sync** — Read the device's current time, sync it to the host
-//      (phone) time, or write an arbitrary Unix timestamp.
-//
-//   2. **BLE Inspector** — Select any known BLE characteristic from a
-//      picker (or enter a custom UUID), read its raw hex bytes, see a decoded
-//      human-readable value, and write raw hex data.
-//
-//   3. **Log Cell Inspector** — Read a single log cell by index number and
-//      display all its fields (timestamp, CO2, temperature, humidity, PM, etc.)
-//      in a monospaced text view. Useful for verifying data integrity.
-//
-// SWIFTUI CONCEPTS USED:
-//   - @Environment: Reads the shared DeviceViewModel.
-//   - @State: Manages many independent pieces of local UI state (text fields,
-//     results, status messages, picker selections, toggle states).
-//   - List / Section: Groups related controls into a scrollable form layout.
-//   - Picker: A selection control for choosing a BLE characteristic.
-//   - Toggle: Switches between the known-characteristic picker and custom UUID input.
-//   - TextField: Text input for UUIDs, hex data, timestamps, and cell numbers.
-//   - Task { await ... }: Runs async BLE operations from button actions.
-//   - .textSelection(.enabled): Allows the user to long-press and copy text
-//     from result displays (useful for sharing debug output).
-//
-// ────────────────────────────────────────────────────────────────────────────
-
 import SwiftUI
 import CoreBluetooth
 import os.log
 
-/// A developer-only debugging tool providing raw BLE access, time sync, and log cell inspection.
-///
-/// **Important:** This view is intended for firmware developers and hardware engineers,
-/// not for end users. It exposes low-level BLE operations that can modify device state.
-///
-/// The view has three sections:
-/// - **Time Sync**: Read, sync, or manually set the device's internal clock.
-/// - **Raw BLE Inspector**: Read/write arbitrary BLE characteristics by UUID.
-/// - **Log Cell Inspector**: Read individual log cells by index for data verification.
-///
-/// ## Dependencies
-/// - `DeviceViewModel`: Provides access to the BLE manager, device info (cell count),
-///   and methods for reading/writing device characteristics.
 struct AdvancedView: View {
 
-    // MARK: - Environment
-
-    /// The shared device view model providing BLE access and device state.
     @Environment(DeviceViewModel.self) private var deviceVM
 
-    // MARK: - Body
-
-    /// The main view body — a List-based form with three diagnostic sections.
     var body: some View {
         List {
             timeSyncSection
@@ -74,11 +15,9 @@ struct AdvancedView: View {
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle("Advanced")
         .toolbar {
-            // Leading: BLE connect/disconnect button.
             ToolbarItem(placement: .topBarLeading) {
                 ConnectButton()
             }
-            // Keyboard: "Done" button to dismiss the keyboard.
             ToolbarItem(placement: .keyboard) {
                 Button("Done") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
                     .frame(maxWidth: .infinity, alignment: .trailing)
@@ -86,24 +25,12 @@ struct AdvancedView: View {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // MARK: - Time Sync Section
-    // ═══════════════════════════════════════════════════════════════════════
-    //
-    // Allows developers to read the device's internal clock, sync it to the
-    // phone's current time, or write an arbitrary Unix timestamp for testing.
-    // The device stores time as a 32-bit Unix timestamp (seconds since 1970).
-
-    /// The result of the last "Read Time" operation (e.g., "1709123456 — Feb 28, 2024 12:30:56").
     @State private var readTimeResult: String?
 
-    /// The custom Unix timestamp text entered by the user for the "Set" button.
     @State private var customTimeText = ""
 
-    /// A status message displayed after time operations (success or error).
     @State private var timeStatus: String?
 
-    /// The Time Sync section UI — buttons for reading, syncing, and setting the device clock.
     private var timeSyncSection: some View {
         Section("Time Sync") {
             HStack {
@@ -161,49 +88,22 @@ struct AdvancedView: View {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // MARK: - Raw BLE Inspector Section
-    // ═══════════════════════════════════════════════════════════════════════
-    //
-    // The BLE Inspector lets developers read and write raw BLE characteristic
-    // data. It operates in two modes:
-    //
-    // 1. **Known Characteristic mode** (default): A Picker lists all
-    //    characteristics defined in `KnownCharacteristics.all`, showing
-    //    their label, access mode (read/write/readWrite), format, and UUID.
-    //
-    // 2. **Custom UUID mode**: A text field accepts a 4-character short UUID
-    //    (e.g., "2A6E") or a full 36-character UUID string.
-    //
-    // After reading, the raw hex bytes are displayed, plus a "Decoded" line
-    // that uses type-specific parsers (e.g., temperature from 2 bytes,
-    // device name from UTF-8 string, config struct from 16 bytes).
-
-    /// The index of the currently selected characteristic in `KnownCharacteristics.all`.
     @State private var selectedCharIndex: Int = 0
 
-    /// Whether the inspector is in custom UUID mode (true) vs. known characteristic mode (false).
     @State private var useCustomUUID = false
 
-    /// The custom UUID string entered by the user (e.g., "2A6E" or a full UUID).
     @State private var customUUIDText = ""
 
-    /// The raw hex bytes result from the last read operation (e.g., "CA 7D F0 01").
     @State private var readHexResult: String?
 
-    /// The human-readable decoded result from the last read operation (e.g., "423 ppm").
     @State private var readDecodedResult: String?
 
-    /// The hex bytes to write, entered by the user (e.g., "CA 7D F0").
     @State private var writeHexText = ""
 
-    /// An error or status message from the last inspector operation.
     @State private var inspectorStatus: String?
 
-    /// The Raw BLE Inspector section UI.
     private var bleInspectorSection: some View {
         Section("Raw BLE Inspector") {
-            // Characteristic picker
             Toggle("Custom UUID", isOn: $useCustomUUID)
 
             if useCustomUUID {
@@ -226,7 +126,6 @@ struct AdvancedView: View {
                 }
             }
 
-            // Read button
             HStack {
                 Button("Read") {
                     Task { await performRead() }
@@ -241,14 +140,12 @@ struct AdvancedView: View {
                 .disabled(resolvedAccess == .read || writeHexText.isEmpty)
             }
 
-            // Write input
             if resolvedAccess != .read {
                 TextField("Hex bytes (e.g. CA 7D F0)", text: $writeHexText)
                     .textFieldStyle(.roundedBorder)
                     .textInputAutocapitalization(.characters)
             }
 
-            // Results
             if let hex = readHexResult {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Raw:").font(.caption.bold())
@@ -275,11 +172,6 @@ struct AdvancedView: View {
         }
     }
 
-    /// Resolves the currently selected BLE characteristic UUID.
-    ///
-    /// In custom UUID mode, parses the user's text input into a `CBUUID`.
-    /// In known characteristic mode, returns the UUID from the picker selection.
-    /// Returns `nil` if the input is invalid or the picker index is out of bounds.
     private var resolvedUUID: CBUUID? {
         if useCustomUUID {
             let text = customUUIDText.trimmingCharacters(in: .whitespaces)
@@ -290,8 +182,6 @@ struct AdvancedView: View {
         return KnownCharacteristics.all[selectedCharIndex].uuid
     }
 
-    /// Validate that a string is acceptable for `CBUUID(string:)`.
-    /// Accepts 4-char short UUIDs (e.g. "2A6E") and full 36-char UUIDs with dashes.
     private func isValidUUIDString(_ text: String) -> Bool {
         let hex = CharacterSet(charactersIn: "0123456789ABCDEFabcdef")
         let hexDash = CharacterSet(charactersIn: "0123456789ABCDEFabcdef-")
@@ -301,30 +191,18 @@ struct AdvancedView: View {
         if text.count == 36 {
             return text.unicodeScalars.allSatisfy { hexDash.contains($0) }
         }
-        // Also allow 8-char (32-bit) short UUIDs
         if text.count == 8 {
             return text.unicodeScalars.allSatisfy { hex.contains($0) }
         }
         return false
     }
 
-    /// The access mode for the currently selected characteristic.
     private var resolvedAccess: CharAccess {
         if useCustomUUID { return .readWrite }
         guard selectedCharIndex < KnownCharacteristics.all.count else { return .readWrite }
         return KnownCharacteristics.all[selectedCharIndex].access
     }
 
-    /// Reads the selected BLE characteristic and displays the raw hex bytes and decoded value.
-    ///
-    /// This is the core "Read" action in the BLE Inspector. It:
-    /// 1. Resolves the UUID (from picker or custom input).
-    /// 2. Calls `manager.readCharacteristic()` to perform the BLE read.
-    /// 3. Displays the raw hex bytes (e.g., "CA 7D F0 01").
-    /// 4. Attempts to decode the bytes into a human-readable string using
-    ///    `decodeCharacteristic()` (e.g., "423 ppm" for CO2).
-    ///
-    /// `@MainActor` ensures this runs on the main thread (required for UI updates).
     @MainActor
     private func performRead() async {
         guard let uuid = resolvedUUID, let manager = deviceVM.bleManager else {
@@ -343,11 +221,6 @@ struct AdvancedView: View {
         }
     }
 
-    /// Writes raw hex bytes to the selected BLE characteristic.
-    ///
-    /// Parses the user's hex string input (e.g., "CA 7D F0") into `Data`,
-    /// writes it to the device, and then auto-reads the characteristic to
-    /// show the result (useful for verifying the write succeeded).
     @MainActor
     private func performWrite() async {
         guard let uuid = resolvedUUID, let manager = deviceVM.bleManager else {
@@ -362,7 +235,6 @@ struct AdvancedView: View {
         do {
             try await manager.writeCharacteristic(uuid, data: data)
             inspectorStatus = nil
-            // Auto-read after write to show result
             if resolvedAccess != .write {
                 await performRead()
             }
@@ -371,15 +243,6 @@ struct AdvancedView: View {
         }
     }
 
-    /// Attempts to decode raw BLE characteristic data into a human-readable string.
-    ///
-    /// Uses the characteristic's UUID to determine how to interpret the bytes.
-    /// For example:
-    /// - Device name / pet name: decoded as UTF-8 string.
-    /// - Temperature: 2 bytes decoded as a signed 16-bit integer / 100.
-    /// - Config: 16 bytes decoded into all configuration fields.
-    ///
-    /// Returns `nil` for unknown UUIDs or if the data is too short.
     private func decodeCharacteristic(uuid: CBUUID, data: Data) -> String? {
         switch uuid {
         case BLEConstants.charDeviceName, BLEConstants.charPetName:
@@ -396,7 +259,7 @@ struct AdvancedView: View {
 
         case BLEConstants.charStats:
             guard data.count >= 6 else { return nil }
-            let s = BLEParsers.parseStats(data)
+            guard let s = try? BLEParsers.parseStats(data) else { return nil }
             return "V:\(s.vigour) F:\(s.focus) S:\(s.spirit) Age:\(s.age) Int:\(s.interventions)"
 
         case BLEConstants.charItemsOwned, BLEConstants.charItemsPlaced:
@@ -408,52 +271,40 @@ struct AdvancedView: View {
 
         case BLEConstants.essTemperature:
             guard data.count >= 2 else { return nil }
-            return "\(BLEParsers.parseTemperature(data)) °C"
+            guard let value = try? BLEParsers.parseTemperature(data) else { return nil }
+            return "\(value) °C"
 
         case BLEConstants.essHumidity:
             guard data.count >= 2 else { return nil }
-            return "\(BLEParsers.parseHumidity(data)) %"
+            guard let value = try? BLEParsers.parseHumidity(data) else { return nil }
+            return "\(value) %"
 
         case BLEConstants.essPressure:
             guard data.count >= 4 else { return nil }
-            return "\(BLEParsers.parsePressure(data)) hPa"
+            guard let value = try? BLEParsers.parsePressure(data) else { return nil }
+            return "\(value) hPa"
 
         case BLEConstants.essCO2:
             guard data.count >= 2 else { return nil }
-            return "\(BLEParsers.parseCO2(data)) ppm"
+            guard let value = try? BLEParsers.parseCO2(data) else { return nil }
+            return "\(value) ppm"
 
         case BLEConstants.essPM2_5, BLEConstants.essPM1_0, BLEConstants.essPM10:
             guard data.count >= 2 else { return nil }
-            return "\(BLEParsers.parsePM(data)) µg/m³"
+            guard let value = try? BLEParsers.parsePM(data) else { return nil }
+            return "\(value) µg/m³"
 
         default:
             return nil
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // MARK: - Log Cell Inspector Section
-    // ═══════════════════════════════════════════════════════════════════════
-    //
-    // The Log Cell Inspector reads a single log cell from the device by its
-    // index number and displays all parsed fields. This is useful for:
-    // - Verifying that firmware is writing correct sensor data to the log.
-    // - Debugging timestamp issues.
-    // - Inspecting individual data points without downloading the entire log.
-    //
-    // A log cell contains: cell number, timestamp, flags, CO2, temperature,
-    // humidity, pressure, PM1.0/2.5/4.0/10, VOC, NOx, and uncompensated CO2.
-
-    /// The cell index number entered by the user.
     @State private var cellIndexText = ""
 
-    /// The formatted result of the last cell read operation.
     @State private var cellResult: String?
 
-    /// An error message from the last cell read operation.
     @State private var cellError: String?
 
-    /// The Log Cell Inspector section UI — input field, read button, and results display.
     private var cellInspectorSection: some View {
         Section("Log Cell Inspector") {
             if let count = deviceVM.cellCount {
@@ -513,7 +364,6 @@ struct AdvancedView: View {
         }
     }
 
-    /// Format a parsed log cell into a human-readable key-value string.
     private func formatCell(_ cell: ParsedLogCell) -> String {
         """
         Cell #\(cell.cellNumber)
@@ -523,10 +373,10 @@ struct AdvancedView: View {
         Temp: \(String(format: "%.2f", cell.temperature)) °C
         RH: \(String(format: "%.1f", cell.humidity)) %
         Pressure: \(String(format: "%.1f", cell.pressure)) hPa
-        PM1.0: \(String(format: "%.1f", cell.pm.0)) µg/m³
-        PM2.5: \(String(format: "%.1f", cell.pm.1)) µg/m³
-        PM4.0: \(String(format: "%.1f", cell.pm.2)) µg/m³
-        PM10: \(String(format: "%.1f", cell.pm.3)) µg/m³
+        PM1.0: \(String(format: "%.1f", cell.pm.pm1_0)) µg/m³
+        PM2.5: \(String(format: "%.1f", cell.pm.pm2_5)) µg/m³
+        PM4.0: \(String(format: "%.1f", cell.pm.pm4_0)) µg/m³
+        PM10: \(String(format: "%.1f", cell.pm.pm10)) µg/m³
         VOC: \(cell.voc)
         NOx: \(cell.nox)
         CO₂ uncomp: \(cell.co2Uncomp) ppm

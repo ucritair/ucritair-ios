@@ -1,135 +1,50 @@
-// ────────────────────────────────────────────────────────────────────────────
-// SensorChartView.swift
-// uCritAir
-// ────────────────────────────────────────────────────────────────────────────
-//
-// PURPOSE:
-//   Renders a full-size interactive line chart for a single sensor's
-//   historical data. This is the main chart shown in the History tab.
-//
-//   Features:
-//   - Data-scaled Y-axis with 5% padding (does not force zero).
-//   - Adaptive X-axis labels that change format based on the time range
-//     (hour:minute for 1h, day names for 7d, month+day for 30d, etc.).
-//   - Touch-to-inspect: dragging horizontally on the chart shows a tooltip
-//     with the exact value and timestamp of the nearest data point.
-//   - Selection overlay: a dashed vertical rule and a highlighted dot mark
-//     the inspected point.
-//
-// SWIFT CHARTS FRAMEWORK CONCEPTS:
-//   The Swift Charts framework (imported as `Charts`) is Apple's declarative
-//   charting library, available from iOS 16+. Key concepts used here:
-//
-//   - **Chart**: The container view that holds all mark declarations.
-//   - **LineMark**: Draws a connected line through data points. Each point
-//     is defined by x and y values using `.value("Label", data)`.
-//   - **PointMark**: Draws a dot at a single data point. Used here for the
-//     selection indicator (a colored dot with a white center).
-//   - **RuleMark**: Draws a line (rule) across the chart. Used here for the
-//     vertical dashed line at the selected point.
-//   - **AxisMarks / AxisValueLabel / AxisGridLine**: Customize the chart's
-//     axes — which tick marks to show and how to format their labels.
-//   - **.chartOverlay**: Adds an invisible overlay on top of the chart for
-//     handling touch gestures. The `ChartProxy` converts screen coordinates
-//     to data coordinates (e.g., x-position to Date).
-//   - **.chartYScale(domain:)** / **.chartXScale(domain:)**: Explicitly set
-//     the range of values shown on each axis.
-//   - **.interpolationMethod(.catmullRom)**: Smooths the line through points
-//     using Catmull-Rom spline interpolation.
-//   - **.annotation**: Attaches a view (the tooltip) to a specific mark.
-//
-// SWIFTUI CONCEPTS USED:
-//   - @State: Tracks the currently selected (inspected) point.
-//   - DragGesture: Detects horizontal drags for the touch-to-inspect feature.
-//   - GeometryReader (inside chartOverlay): Reads the chart's frame origin
-//     to convert gesture coordinates to chart-relative coordinates.
-//
-// TIMEZONE NOTE:
-//   All date formatters use UTC timezone. This is intentional because the
-//   device stores timestamps as "local time as Unix epoch" — the device's
-//   local clock value stored as if it were UTC. Displaying in UTC recovers
-//   the original local time without double-converting through time zones.
-//
-// ────────────────────────────────────────────────────────────────────────────
-
 import SwiftUI
 import Charts
 
 // MARK: - ChartPoint Extension
 
-/// Convenience extension to convert a `ChartPoint`'s integer timestamp to a `Date`.
-///
-/// `ChartPoint.timestamp` is stored as seconds-since-epoch (Int). Swift Charts
-/// needs a `Date` for its x-axis. This computed property performs the conversion.
 extension ChartPoint {
     var date: Date {
         Date(timeIntervalSince1970: TimeInterval(timestamp))
     }
 }
 
-/// An interactive single-sensor line chart with data-scaled axes, adaptive
-/// x-axis labels, and touch-to-inspect tooltips.
-///
-/// This view is the main chart component in the History tab. It receives
-/// pre-filtered data points from `HistoryViewModel` and renders them as a
-/// smooth line chart using the Swift Charts framework.
-///
-/// ## Parameters (passed in by the parent `HistoryView`)
-/// - `points`: The array of `ChartPoint` values to plot.
-/// - `color`: The sensor's theme color for the line and selection indicator.
-/// - `unit`: The measurement unit string (e.g., "ppm", "°C") for axis labels.
-/// - `timeRange`: The currently selected time window, used to format x-axis labels.
-/// - `formatValue`: A closure that formats a Double value for display (e.g., "423").
-/// - `xDomain`: The explicit x-axis date range from the parent view model.
-///
-/// ## Interaction
-/// Dragging horizontally on the chart triggers the touch-to-inspect feature:
-/// a dashed vertical line and tooltip appear showing the exact value and
-/// timestamp of the nearest data point. Releasing the finger dismisses it.
 struct SensorChartView: View {
 
-    /// The array of data points to plot on the chart.
     let points: [ChartPoint]
 
-    /// The sensor's theme color used for the line stroke and selection indicator.
     let color: Color
 
-    /// The measurement unit string (e.g., "ppm", "µg/m³") shown in axis labels and tooltips.
     let unit: String
 
-    /// The currently active time range, used to determine x-axis label formatting.
     let timeRange: TimeRange
 
-    /// A closure that formats a raw Double value into a display string (e.g., 423.0 -> "423").
     let formatValue: (Double) -> String
 
-    /// The explicit x-axis domain (date range) provided by the parent view model.
-    /// If `nil`, the domain is derived from the first and last data points.
     let xDomain: ClosedRange<Date>?
 
-    // MARK: - State
-
-    /// The data point currently being inspected via the touch-to-inspect gesture.
-    ///
-    /// **SwiftUI concept — @State:**
-    /// This is private view state that only this chart view owns. When the user
-    /// drags on the chart, `selectedPoint` is set to the nearest data point;
-    /// when they release, it is set back to `nil`. SwiftUI re-renders the
-    /// selection overlay and tooltip whenever this value changes.
     @State private var selectedPoint: ChartPoint?
 
-    // MARK: - Date Formatters
+    @State private var visibleDomainLength: TimeInterval = 0
 
-    // Shared date formatters (created once as static properties to avoid
-    // re-creating them every time the view re-renders — a performance optimization).
-    //
-    // All formatters use UTC timezone. See the file header comment for why.
+    @State private var visibleStart: Date = .distantPast
+
+    @State private var isZoomed = false
+
+    // Zoom gesture state
+    @State private var baselineDomainLength: TimeInterval?
+    @State private var zoomAnchorDate: Date?
+    @State private var zoomAnchorFraction: CGFloat = 0
+
+    // Pan gesture state
+    @State private var panStartDate: Date?
+
     private static let utc: TimeZone = .gmt
 
     private static let fmtHourMinute: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "h:mm a"   // "3:42 PM"
+        f.dateFormat = "h:mm a"
         f.timeZone = utc
         return f
     }()
@@ -137,7 +52,7 @@ struct SensorChartView: View {
     private static let fmtHour24: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "HH:00"    // "06:00", "12:00", "18:00" (Aranet4-style)
+        f.dateFormat = "HH:00"
         f.timeZone = utc
         return f
     }()
@@ -145,7 +60,7 @@ struct SensorChartView: View {
     private static let fmtDayShort: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "EEE"      // "Mon", "Tue" (Aranet4-style)
+        f.dateFormat = "EEE"
         f.timeZone = utc
         return f
     }()
@@ -153,7 +68,7 @@ struct SensorChartView: View {
     private static let fmtMonthDay: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "MMM dd"   // "Feb 05"
+        f.dateFormat = "MMM dd"
         f.timeZone = utc
         return f
     }()
@@ -161,7 +76,7 @@ struct SensorChartView: View {
     private static let fmtAnnotationShort: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "h:mm:ss a"  // "3:42:15 PM"
+        f.dateFormat = "h:mm:ss a"
         f.timeZone = utc
         return f
     }()
@@ -169,7 +84,7 @@ struct SensorChartView: View {
     private static let fmtAnnotationDay: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "EEE dd, h:mm a"  // "Wed 25, 3:42 PM"
+        f.dateFormat = "EEE dd, h:mm a"
         f.timeZone = utc
         return f
     }()
@@ -177,23 +92,11 @@ struct SensorChartView: View {
     private static let fmtAnnotationFull: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "MMM dd, h:mm a"  // "Feb 05, 3:42 PM"
+        f.dateFormat = "MMM dd, h:mm a"
         f.timeZone = utc
         return f
     }()
 
-    // MARK: - Y-axis Domain
-
-    /// Computes the Y-axis range from the data, with 5% padding above and below.
-    ///
-    /// Unlike many charts that always start at zero, this gauge scales the Y-axis
-    /// to the actual data range so that small variations are clearly visible.
-    /// For example, if CO2 readings range from 400 to 500, the Y-axis shows
-    /// roughly 395 to 505 rather than 0 to 505.
-    ///
-    /// Edge cases:
-    /// - If all values are the same (lo == hi), adds +/- 1 to prevent a zero-height axis.
-    /// - If there are no valid values, falls back to 0...1.
     private var yDomain: ClosedRange<Double> {
         let values = points.compactMap(\.value)
         guard let lo = values.min(), let hi = values.max() else {
@@ -206,31 +109,10 @@ struct SensorChartView: View {
         return (lo - padding)...(hi + padding)
     }
 
-    // MARK: - X-axis Domain & Stride
-
-    /// Returns the explicit tick-mark spacing for the x-axis based on the current time range.
-    ///
-    /// **Swift Charts concept — AxisMarkValues:**
-    /// `AxisMarkValues` tells the chart framework where to place tick marks and
-    /// labels along an axis. `.stride(by:count:)` spaces them at regular
-    /// calendar intervals (e.g., every 15 minutes, every 6 hours, every 1 day).
-    /// `.automatic` lets the framework choose the best spacing.
-    private var xAxisStride: AxisMarkValues {
-        switch timeRange {
-        case .oneHour:         return .stride(by: .minute, count: 15)
-        case .twentyFourHours: return .stride(by: .hour, count: 6)
-        case .sevenDays:       return .stride(by: .day, count: 1)
-        case .thirtyDays:      return .stride(by: .day, count: 7)
-        case .all:             return .automatic
-        }
-    }
-
-    /// X-axis scale domain from the parent HistoryViewModel.
-    private var xScaleDomain: ClosedRange<Date> {
+    private var fullDomain: ClosedRange<Date> {
         if let domain = xDomain {
             return domain
         }
-        // Fallback: derive from points
         guard let first = points.first, let last = points.last else {
             let now = Date()
             return now...now
@@ -238,24 +120,28 @@ struct SensorChartView: View {
         return first.date...last.date
     }
 
-    // MARK: - Body
+    private var fullDomainLength: TimeInterval {
+        max(fullDomain.upperBound.timeIntervalSince(fullDomain.lowerBound), 1)
+    }
 
-    /// The chart view body — renders the data line, selection overlay, and axes.
-    ///
-    /// The chart body contains three logical sections:
-    /// 1. **Data line** — A `LineMark` for each valid data point, forming the main line.
-    /// 2. **Selection overlay** — A `RuleMark` (vertical dashed line) and two
-    ///    `PointMark`s (colored dot with white center) shown at the inspected point,
-    ///    plus an `.annotation` tooltip displaying the value and time.
-    /// 3. **Axes** — Custom x-axis with adaptive date labels and a y-axis with
-    ///    the unit label on the leading edge.
-    ///
-    /// The `.chartOverlay` adds an invisible gesture layer that converts touch
-    /// coordinates to data coordinates using the `ChartProxy`.
+    private var minDomainLength: TimeInterval {
+        max(60, fullDomainLength * 0.02)
+    }
+
+    private var effectiveDomainLength: TimeInterval {
+        let length = visibleDomainLength > 0 ? visibleDomainLength : fullDomainLength
+        return max(length, 1)
+    }
+
+    private var visibleXDomain: ClosedRange<Date> {
+        guard isZoomed else { return fullDomain }
+        let start = visibleStart
+        let end = start.addingTimeInterval(effectiveDomainLength)
+        return start...end
+    }
+
     var body: some View {
         Chart {
-            // Section 1: Data line — iterates over all data points and draws a LineMark
-            // for each one that has a non-nil value.
             ForEach(points) { point in
                 if let value = point.value {
                     LineMark(
@@ -268,10 +154,6 @@ struct SensorChartView: View {
                 }
             }
 
-            // Section 2: Selection overlay — shown when the user is dragging on the chart.
-            // This consists of a dashed vertical line (RuleMark), a colored dot
-            // (outer PointMark), a white center dot (inner PointMark), and a
-            // tooltip annotation displaying the value and timestamp.
             if let selected = selectedPoint, let value = selected.value {
                 RuleMark(x: .value("Selected", selected.date))
                     .foregroundStyle(.gray.opacity(0.5))
@@ -306,13 +188,13 @@ struct SensorChartView: View {
             }
         }
         .chartYScale(domain: yDomain)
-        .chartXScale(domain: xScaleDomain)
+        .chartXScale(domain: visibleXDomain)
         .chartXAxis {
-            AxisMarks(values: xAxisStride) { value in
+            AxisMarks(values: .automatic) { value in
                 AxisGridLine()
                 AxisValueLabel {
                     if let date = value.as(Date.self) {
-                        Text(xAxisLabel(for: date))
+                        Text(adaptiveXAxisLabel(for: date))
                             .font(.caption2)
                     }
                 }
@@ -331,116 +213,169 @@ struct SensorChartView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        // Touch-to-inspect gesture overlay.
-        //
-        // **Swift Charts concept — .chartOverlay:**
-        // `.chartOverlay` adds a transparent layer on top of the chart.
-        // The closure receives a `ChartProxy` that can convert between
-        // screen coordinates and data values. For example,
-        // `proxy.value(atX: x)` converts an x pixel offset to a `Date`.
-        //
-        // **SwiftUI concept — DragGesture:**
-        // `DragGesture` detects finger drags. `.simultaneousGesture` is used
-        // instead of `.gesture` so that vertical drags can still scroll the
-        // parent ScrollView — only horizontal drags are captured for inspection.
         .chartOverlay { proxy in
             GeometryReader { geometry in
                 Color.clear
                     .contentShape(Rectangle())
+                    .onTapGesture { location in
+                        guard let plotFrame = proxy.plotFrame else { return }
+                        let origin = geometry[plotFrame].origin
+                        let x = location.x - origin.x
+                        guard let date: Date = proxy.value(atX: x) else { return }
+                        if let nearest = nearestPoint(to: date) {
+                            selectedPoint = selectedPoint?.id == nearest.id ? nil : nearest
+                        }
+                    }
                     .simultaneousGesture(
-                        DragGesture(minimumDistance: 12)
-                            .onChanged { drag in
-                                // Only capture horizontal drags — let vertical ones pass to ScrollView.
-                                guard abs(drag.translation.width) > abs(drag.translation.height) else {
-                                    if selectedPoint != nil { selectedPoint = nil }
-                                    return
+                        MagnifyGesture()
+                            .onChanged { gesture in
+                                if baselineDomainLength == nil {
+                                    baselineDomainLength = effectiveDomainLength
+                                    selectedPoint = nil
+
+                                    if let plotFrame = proxy.plotFrame {
+                                        let plotRect = geometry[plotFrame]
+                                        let anchorXInView = geometry.size.width * gesture.startAnchor.x
+                                        let anchorXInPlot = anchorXInView - plotRect.origin.x
+                                        let fraction = anchorXInPlot / plotRect.width
+                                        zoomAnchorFraction = max(0, min(1, fraction))
+
+                                        if let date: Date = proxy.value(atX: anchorXInPlot) {
+                                            zoomAnchorDate = date
+                                        } else {
+                                            zoomAnchorDate = isZoomed
+                                                ? visibleStart.addingTimeInterval(effectiveDomainLength * zoomAnchorFraction)
+                                                : fullDomain.lowerBound.addingTimeInterval(fullDomainLength * zoomAnchorFraction)
+                                        }
+                                    }
                                 }
-                                // Convert the gesture's x-position to a chart data coordinate (Date).
-                                guard let plotFrame = proxy.plotFrame else { return }
-                                let origin = geometry[plotFrame].origin
-                                let x = drag.location.x - origin.x
-                                guard let date: Date = proxy.value(atX: x) else { return }
-                                // Find the nearest data point to the touch position.
-                                selectedPoint = nearestPoint(to: date)
+
+                                let newLength = (baselineDomainLength ?? effectiveDomainLength) / gesture.magnification
+                                let clamped = max(minDomainLength, min(fullDomainLength, newLength))
+                                visibleDomainLength = clamped
+
+                                if let anchor = zoomAnchorDate {
+                                    visibleStart = anchor.addingTimeInterval(-Double(zoomAnchorFraction) * clamped)
+                                }
+                                clampVisibleRange()
+                                isZoomed = clamped < fullDomainLength * 0.98
                             }
                             .onEnded { _ in
-                                // Clear the selection when the user lifts their finger.
-                                selectedPoint = nil
+                                baselineDomainLength = nil
+                                zoomAnchorDate = nil
+                                zoomAnchorFraction = 0
+                            }
+                    )
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 10)
+                            .onChanged { drag in
+                                // Don't pan during an active pinch-zoom
+                                guard baselineDomainLength == nil else { return }
+                                guard isZoomed else { return }
+                                guard let plotFrame = proxy.plotFrame else { return }
+
+                                if panStartDate == nil {
+                                    panStartDate = visibleStart
+                                    selectedPoint = nil
+                                }
+
+                                let plotWidth = geometry[plotFrame].width
+                                guard plotWidth > 0 else { return }
+                                let timePerPixel = effectiveDomainLength / plotWidth
+                                let timeDelta = -Double(drag.translation.width) * timePerPixel
+                                visibleStart = panStartDate!.addingTimeInterval(timeDelta)
+                                clampVisibleRange()
+                            }
+                            .onEnded { _ in
+                                panStartDate = nil
                             }
                     )
             }
         }
-    }
-
-    // MARK: - X-axis Labels (Aranet4-style)
-
-    /// Adaptive x-axis label format matching Aranet4 patterns:
-    /// - 1h: "3:42 PM" (hour:minute)
-    /// - 24h: "06:00", "12:00" (24h clock, Aranet4-style)
-    /// - 7d: "Mon", "Tue" (short day name)
-    /// - 30d: "Feb 05", "Mar 01" (month + day)
-    /// - All: adaptive based on data span
-    private func xAxisLabel(for date: Date) -> String {
-        switch timeRange {
-        case .oneHour:
-            return Self.fmtHourMinute.string(from: date)
-        case .twentyFourHours:
-            return Self.fmtHour24.string(from: date)
-        case .sevenDays:
-            return Self.fmtDayShort.string(from: date)
-        case .thirtyDays:
-            return Self.fmtMonthDay.string(from: date)
-        case .all:
-            let spanDays = dataSpanDays
-            if spanDays <= 1 {
-                return Self.fmtHour24.string(from: date)
-            } else if spanDays <= 14 {
-                return Self.fmtDayShort.string(from: date)
-            } else {
-                return Self.fmtMonthDay.string(from: date)
+        .overlay(alignment: .topTrailing) {
+            if isZoomed {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        resetToFullDomain()
+                    }
+                } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.caption2)
+                        .padding(6)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .padding(8)
+                .accessibilityLabel("Reset zoom")
+            }
+        }
+        .onAppear {
+            resetToFullDomain()
+        }
+        .onChange(of: timeRange) { _, _ in
+            resetToFullDomain()
+        }
+        .onChange(of: xDomain) { _, _ in
+            if !isZoomed {
+                resetToFullDomain()
             }
         }
     }
 
-    /// Total number of whole days spanned by the current chart data, used to select the x-axis label format in "All" mode.
+    private func resetToFullDomain() {
+        visibleDomainLength = fullDomainLength
+        visibleStart = fullDomain.lowerBound
+        isZoomed = false
+        selectedPoint = nil
+    }
+
+    private func clampVisibleRange() {
+        let earliest = fullDomain.lowerBound
+        let latest = fullDomain.upperBound
+        let domainLen = effectiveDomainLength
+        let maxStart = latest.addingTimeInterval(-domainLen)
+
+        if visibleStart < earliest {
+            visibleStart = earliest
+        } else if visibleStart > maxStart {
+            visibleStart = maxStart
+        }
+    }
+
+    private func adaptiveXAxisLabel(for date: Date) -> String {
+        let spanDays = effectiveDomainLength / 86400
+
+        if spanDays <= 0.125 {
+            return Self.fmtHourMinute.string(from: date)
+        } else if spanDays <= 2 {
+            return Self.fmtHour24.string(from: date)
+        } else if spanDays <= 14 {
+            return Self.fmtDayShort.string(from: date)
+        } else {
+            return Self.fmtMonthDay.string(from: date)
+        }
+    }
+
     private var dataSpanDays: Int {
         guard let first = points.first, let last = points.last else { return 0 }
         return (last.timestamp - first.timestamp) / 86400
     }
 
-    // MARK: - Annotation Date Label
-
-    /// Contextual timestamp for the touch-to-inspect tooltip.
     private func annotationDateLabel(_ date: Date) -> String {
-        switch timeRange {
-        case .oneHour, .twentyFourHours:
+        let spanDays = effectiveDomainLength / 86400
+        if spanDays <= 2 {
             return Self.fmtAnnotationShort.string(from: date)
-        case .sevenDays:
+        } else if spanDays <= 14 {
             return Self.fmtAnnotationDay.string(from: date)
-        case .thirtyDays, .all:
+        } else {
             return Self.fmtAnnotationFull.string(from: date)
         }
     }
 
-    // MARK: - Nearest Point Lookup
-
-    /// Finds the data point closest in time to the given date.
-    ///
-    /// Uses binary search for efficiency (O(log n) instead of O(n)). The points
-    /// array is sorted by timestamp, so binary search is applicable.
-    ///
-    /// After the binary search narrows down to a candidate index, the function
-    /// checks the candidate and its immediate neighbors to find the one with
-    /// the smallest absolute time difference from the target date.
-    ///
-    /// - Parameter date: The date to search for (from the chart gesture).
-    /// - Returns: The nearest `ChartPoint` with a non-nil value, or `nil` if no valid points exist.
     private func nearestPoint(to date: Date) -> ChartPoint? {
         let target = Int(date.timeIntervalSince1970)
         let validPoints = points.filter { $0.value != nil }
         guard !validPoints.isEmpty else { return nil }
 
-        // Binary search for closest timestamp
         var lo = 0, hi = validPoints.count - 1
         while lo < hi {
             let mid = (lo + hi) / 2
@@ -451,7 +386,6 @@ struct SensorChartView: View {
             }
         }
 
-        // Check neighbors for closest
         let candidates = Set([max(0, lo - 1), lo, min(validPoints.count - 1, lo + 1)])
         return candidates
             .map { validPoints[$0] }
