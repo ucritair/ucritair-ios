@@ -1,0 +1,53 @@
+name: uCritAir
+options:
+  bundleIdPrefix: com.ucritter
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.4"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  uCritAir:
+    type: application
+    platform: iOS
+    sources:
+      - path: uCritAir
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ucritter.ucritair
+        INFOPLIST_FILE: uCritAir/App/Info.plist
+        SWIFT_STRICT_CONCURRENCY: targeted
+        GENERATE_INFOPLIST_FILE: false
+    info:
+      path: uCritAir/App/Info.plist
+      properties:
+        CFBundleName: uCritAir
+        CFBundleDisplayName: uCritAir
+        CFBundleIdentifier: com.ucritter.ucritair
+        CFBundleVersion: "1"
+        CFBundleShortVersionString: "1.0"
+        CFBundlePackageType: APPL
+        CFBundleExecutable: uCritAir
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSBluetoothAlwaysUsageDescription: "uCritAir needs Bluetooth to connect to your air quality monitor."
+        UIBackgroundModes:
+          - bluetooth-central
+
+  uCritAirTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: uCritAirTests
+    dependencies:
+      - target: uCritAir
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ucritter.ucritair.tests
+        GENERATE_INFOPLIST_FILE: "YES"
