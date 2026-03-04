@@ -11,7 +11,7 @@
 //   The app has four tabs:
 //
 //   ┌─────────────┬─────────────┬─────────────┬─────────────┐
-//   │  Dashboard   │    Data     │   Devices   │  Developer  │
+//   │  Dashboard   │    Data     │   Devices   │  Advanced   │
 //   │  (tab 0)    │  (tab 1)    │  (tab 2)    │  (tab 3)    │
 //   └─────────────┴─────────────┴─────────────┴─────────────┘
 //
@@ -145,12 +145,12 @@ struct ContentView: View {
             }
             .tag(2)
 
-            // Tab 3: Developer — debugging tools for firmware engineers.
+            // Tab 3: Advanced — power-user tools for device diagnostics.
             NavigationStack {
-                DeveloperToolsView()
+                AdvancedView()
             }
             .tabItem {
-                Label("Developer", systemImage: "wrench")
+                Label("Advanced", systemImage: "gearshape.2")
             }
             .tag(3)
         }

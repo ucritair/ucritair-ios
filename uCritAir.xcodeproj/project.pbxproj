@@ -22,6 +22,7 @@
 		68B6D13E60D4007E90347B68 /* AQGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB944E23012DECE9E9C59B27 /* AQGaugeView.swift */; };
 		6A884C62676417765307FAF0 /* LogCellEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = D66D724996B9E5B220D4F617 /* LogCellEntity.swift */; };
 		6D0D264247B507D1249917DC /* DeviceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E0554BC2A8C8C7F5F86F498 /* DeviceView.swift */; };
+		BA10DC32FE54876910325476 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01CD23EF45678901234567 /* AboutView.swift */; };
 		6D80712FE89DEB44B2FF4FB5 /* LogCellStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7BEDA1B1115102887CF89C /* LogCellStore.swift */; };
 		6F46600CB7471C9742FF9FF2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EFE717DF033B359C5C55CD2A /* Assets.xcassets */; };
 		721A937FAF8C55ADC24DC20D /* Data+Parsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81FB9EA2ED248D65F3DECA17 /* Data+Parsing.swift */; };
@@ -66,6 +67,7 @@
 		13E5B2569D2CC3095F6560D8 /* uCritAirTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = uCritAirTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1922847BB2A64D55568F0F57 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		1E0554BC2A8C8C7F5F86F498 /* DeviceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceView.swift; sourceTree = "<group>"; };
+		AB01CD23EF45678901234567 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5C /* DeviceProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceProfile.swift; sourceTree = "<group>"; };
 		B2C3D4E5F6071829A3B4C5D6 /* DeviceListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceListView.swift; sourceTree = "<group>"; };
 		C3D4E5F60718293AB4C5D6E7 /* DeviceCardRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCardRow.swift; sourceTree = "<group>"; };
@@ -219,6 +221,7 @@
 		A962ACD4270AB148B2AD009F /* Device */ = {
 			isa = PBXGroup;
 			children = (
+				AB01CD23EF45678901234567 /* AboutView.swift */,
 				C3D4E5F60718293AB4C5D6E7 /* DeviceCardRow.swift */,
 				B2C3D4E5F6071829A3B4C5D6 /* DeviceListView.swift */,
 				1E0554BC2A8C8C7F5F86F498 /* DeviceView.swift */,
@@ -401,6 +404,7 @@
 				721A937FAF8C55ADC24DC20D /* Data+Parsing.swift in Sources */,
 				E197E519BA5771596159821D /* DeveloperView.swift in Sources */,
 				5B8D8A0D8BF7CDB5451E3DD2 /* DeviceConfig.swift in Sources */,
+				BA10DC32FE54876910325476 /* AboutView.swift in Sources */,
 				F3A4B5C60718293AB4C5D6E8 /* DeviceCardRow.swift in Sources */,
 				E2F3A4B5C6071829A3B4C5D7 /* DeviceListView.swift in Sources */,
 				D1E2F3A4B5C60718293A4B5D /* DeviceProfile.swift in Sources */,

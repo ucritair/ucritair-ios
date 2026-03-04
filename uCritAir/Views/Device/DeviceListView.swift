@@ -100,6 +100,9 @@ struct DeviceListView: View {
     /// is automatically set back to `false`.
     @State private var showSettings = false
 
+    /// Controls programmatic navigation push to the AboutView.
+    @State private var showAbout = false
+
     // MARK: - Body
 
     /// The main view body — conditionally shows an empty state or the device list.
@@ -119,7 +122,17 @@ struct DeviceListView: View {
         .navigationDestination(isPresented: $showSettings) {
             DeviceView()
         }
+        .navigationDestination(isPresented: $showAbout) {
+            AboutView()
+        }
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showAbout = true
+                } label: {
+                    Image(systemName: "info.circle")
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showScanSheet = true

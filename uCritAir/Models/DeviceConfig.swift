@@ -231,9 +231,9 @@ struct DeviceConfig: Equatable, Sendable {
     /// designated byte offset using little-endian decoding, and reconstructs
     /// the full 64-bit `persistFlags` from its two 32-bit halves.
     ///
-    /// - Parameter data: A 16-byte `Data` buffer read from BLE characteristic
-    ///   `0x0015`. Must be exactly 16 bytes.
-    /// - Returns: A fully populated ``DeviceConfig`` instance.
+    /// - Parameter data: A `Data` buffer read from BLE characteristic
+    ///   `0x0015`. Must be at least 16 bytes.
+    /// - Returns: A ``DeviceConfig`` instance, or `nil` if the data is too short.
     ///
     /// ## Example
     ///
@@ -245,7 +245,8 @@ struct DeviceConfig: Equatable, Sendable {
     ///     print("Sleep after: \(config.sleepAfterSeconds) seconds")
     /// }
     /// ```
-    static func parse(from data: Data) -> DeviceConfig {
+    static func parse(from data: Data) -> DeviceConfig? {
+        guard data.count >= 16 else { return nil }
         // Read the two 32-bit halves of the flags and combine them into one 64-bit value.
         // flagsLow = bits 0-31, flagsHigh = bits 32-63.
         let flagsLow = UInt64(data.readUInt32LE(at: 8))

@@ -14,7 +14,7 @@ import os.log
 //   3. Discovering GATT services and characteristics
 //   4. Reading and writing characteristic values (with async/await bridging)
 //   5. Subscribing to ESS notifications for real-time sensor data
-//   6. Polling the "live cell" for VOC/NOx/PM4.0 readings
+//   6. Polling the "live cell" for VOC/NOx readings
 //   7. Handling unexpected disconnects with automatic reconnection
 //   8. Providing log stream notification forwarding for BLELogStream
 //

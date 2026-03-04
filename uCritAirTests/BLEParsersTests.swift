@@ -129,7 +129,7 @@ struct BLEParsersTests {
     // MARK: - Device Config Round-Trip
 
     @Test("DeviceConfig serialize/parse round-trip")
-    func testConfigRoundTrip() {
+    func testConfigRoundTrip() throws {
         let original = DeviceConfig(
             sensorWakeupPeriod: 300,
             sleepAfterSeconds: 60,
@@ -142,7 +142,7 @@ struct BLEParsersTests {
         let data = original.serialize()
         #expect(data.count == 16)
 
-        let parsed = DeviceConfig.parse(from: data)
+        let parsed = try #require(DeviceConfig.parse(from: data))
         #expect(parsed == original)
     }
 }

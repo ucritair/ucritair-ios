@@ -128,6 +128,7 @@ struct SensorChartView: View {
 
     private static let fmtHourMinute: DateFormatter = {
         let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "h:mm a"   // "3:42 PM"
         f.timeZone = utc
         return f
@@ -135,6 +136,7 @@ struct SensorChartView: View {
 
     private static let fmtHour24: DateFormatter = {
         let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "HH:00"    // "06:00", "12:00", "18:00" (Aranet4-style)
         f.timeZone = utc
         return f
@@ -142,6 +144,7 @@ struct SensorChartView: View {
 
     private static let fmtDayShort: DateFormatter = {
         let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "EEE"      // "Mon", "Tue" (Aranet4-style)
         f.timeZone = utc
         return f
@@ -149,6 +152,7 @@ struct SensorChartView: View {
 
     private static let fmtMonthDay: DateFormatter = {
         let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "MMM dd"   // "Feb 05"
         f.timeZone = utc
         return f
@@ -156,6 +160,7 @@ struct SensorChartView: View {
 
     private static let fmtAnnotationShort: DateFormatter = {
         let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "h:mm:ss a"  // "3:42:15 PM"
         f.timeZone = utc
         return f
@@ -163,6 +168,7 @@ struct SensorChartView: View {
 
     private static let fmtAnnotationDay: DateFormatter = {
         let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "EEE dd, h:mm a"  // "Wed 25, 3:42 PM"
         f.timeZone = utc
         return f
@@ -170,6 +176,7 @@ struct SensorChartView: View {
 
     private static let fmtAnnotationFull: DateFormatter = {
         let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "MMM dd, h:mm a"  // "Feb 05, 3:42 PM"
         f.timeZone = utc
         return f

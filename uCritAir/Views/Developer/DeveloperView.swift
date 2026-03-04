@@ -1,36 +1,28 @@
 // ────────────────────────────────────────────────────────────────────────────
-// DeveloperView.swift
+// DeveloperView.swift  (Advanced tab)
 // uCritAir
 // ────────────────────────────────────────────────────────────────────────────
 //
 // PURPOSE:
-//   **This is a debugging and development tool, NOT intended for end users.**
+//   The Advanced tab (tab index 3 in the root TabView) provides power-user
+//   tools for device diagnostics and troubleshooting. It allows users to:
 //
-//   The Developer tab (tab index 3 in the root TabView) provides low-level
-//   access to the BLE device for firmware developers and hardware engineers.
-//   It is used to:
-//
-//   - Diagnose firmware issues by reading/writing raw BLE characteristics.
-//   - Inspect the device's internal clock and synchronize it.
-//   - Read individual log cells to verify data integrity.
+//   - Synchronize or inspect the device's internal clock.
+//   - Read and write BLE characteristics for advanced configuration.
+//   - Inspect individual log cells stored on the device.
 //
 //   The view is organized into three sections:
 //
 //   1. **Time Sync** — Read the device's current time, sync it to the host
-//      (phone) time, or write an arbitrary Unix timestamp for testing.
+//      (phone) time, or write an arbitrary Unix timestamp.
 //
-//   2. **Raw BLE Inspector** — Select any known BLE characteristic from a
+//   2. **BLE Inspector** — Select any known BLE characteristic from a
 //      picker (or enter a custom UUID), read its raw hex bytes, see a decoded
-//      human-readable value, and write raw hex data. This is essential for
-//      debugging the BLE protocol between the iOS app and the firmware.
+//      human-readable value, and write raw hex data.
 //
 //   3. **Log Cell Inspector** — Read a single log cell by index number and
 //      display all its fields (timestamp, CO2, temperature, humidity, PM, etc.)
-//      in a monospaced text view. Useful for verifying that the firmware is
-//      writing correct data to the log.
-//
-//   In a production release, this tab could be hidden behind a developer
-//   settings toggle. It currently ships visible for development convenience.
+//      in a monospaced text view. Useful for verifying data integrity.
 //
 // SWIFTUI CONCEPTS USED:
 //   - @Environment: Reads the shared DeviceViewModel.
@@ -63,7 +55,7 @@ import os.log
 /// ## Dependencies
 /// - `DeviceViewModel`: Provides access to the BLE manager, device info (cell count),
 ///   and methods for reading/writing device characteristics.
-struct DeveloperToolsView: View {
+struct AdvancedView: View {
 
     // MARK: - Environment
 
@@ -72,7 +64,7 @@ struct DeveloperToolsView: View {
 
     // MARK: - Body
 
-    /// The main view body — a List-based form with three debugging sections.
+    /// The main view body — a List-based form with three diagnostic sections.
     var body: some View {
         List {
             timeSyncSection
@@ -80,7 +72,7 @@ struct DeveloperToolsView: View {
             cellInspectorSection
         }
         .scrollDismissesKeyboard(.interactively)
-        .navigationTitle("Developer")
+        .navigationTitle("Advanced")
         .toolbar {
             // Leading: BLE connect/disconnect button.
             ToolbarItem(placement: .topBarLeading) {
@@ -411,8 +403,7 @@ struct DeveloperToolsView: View {
             return "\(BLEParsers.countBitmapItems(data)) items"
 
         case BLEConstants.charDeviceConfig:
-            guard data.count >= 16 else { return nil }
-            let c = DeviceConfig.parse(from: data)
+            guard data.count >= 16, let c = DeviceConfig.parse(from: data) else { return nil }
             return "sensor:\(c.sensorWakeupPeriod)s sleep:\(c.sleepAfterSeconds)s dim:\(c.dimAfterSeconds)s nox:\(c.noxSamplePeriod) bright:\(c.screenBrightness) flags:0x\(String(c.persistFlags.rawValue, radix: 16))"
 
         case BLEConstants.essTemperature:
@@ -466,9 +457,15 @@ struct DeveloperToolsView: View {
     private var cellInspectorSection: some View {
         Section("Log Cell Inspector") {
             if let count = deviceVM.cellCount {
-                Text("Device has \(count) cells (0–\(count > 0 ? count - 1 : 0))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if count > 0 {
+                    Text("Device has \(count) cells (0–\(count - 1))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Device has 0 cells")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             HStack {
@@ -482,8 +479,10 @@ struct DeveloperToolsView: View {
                         cellError = "Invalid cell number"
                         return
                     }
-                    if let count = deviceVM.cellCount, index >= count {
-                        cellError = "Cell index out of range (0–\(count - 1))"
+                    if let count = deviceVM.cellCount, count == 0 || index >= count {
+                        cellError = count == 0
+                            ? "Device has no cells"
+                            : "Cell index out of range (0–\(count - 1))"
                         return
                     }
                     cellError = nil

@@ -896,7 +896,7 @@ final class HistoryViewModel {
 
             // Step 3: Calculate the range of new cells to download.
             let startCell = maxCached + 1
-            let count = Int(deviceCellCount) - startCell + 1
+            let count = Int(deviceCellCount) - startCell
 
             logger.info("downloadNewCells: deviceCells=\(deviceCellCount) maxCached=\(maxCached) startCell=\(startCell) count=\(count)")
 
@@ -973,7 +973,7 @@ final class HistoryViewModel {
             let deviceCellCount = try await BLECharacteristics.readCellCount(using: manager)
             let maxCached = try LogCellStore.maxCachedCellNumber(deviceId: deviceId, context: ctx)
             let startCell = maxCached + 1
-            let count = Int(deviceCellCount) - startCell + 1
+            let count = Int(deviceCellCount) - startCell
 
             guard count > 0 else { return }
 

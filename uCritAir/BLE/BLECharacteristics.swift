@@ -307,8 +307,8 @@ enum BLECharacteristics {
     /// - Throws: ``BLEError/noData`` if the response contains fewer than 16 bytes.
     static func readDeviceConfig(using manager: BLEManager) async throws -> DeviceConfig {
         let data = try await manager.readCharacteristic(BLEConstants.charDeviceConfig)
-        guard data.count >= 16 else { throw BLEError.noData }
-        return DeviceConfig.parse(from: data)
+        guard data.count >= 16, let config = DeviceConfig.parse(from: data) else { throw BLEError.noData }
+        return config
     }
 
     /// Write updated configuration settings to the device.
