@@ -33,7 +33,12 @@ struct ConnectButton: View {
         }
         .accessibilityLabel("Bluetooth: \(connectionLabel)")
         .disabled(bleManager.connectionState == .connecting || bleManager.connectionState == .reconnecting)
-        .sheet(isPresented: $showingDeviceList) {
+        .sheet(isPresented: $showingDeviceList, onDismiss: {
+            // Stop scanning if user swipe-dismissed the sheet without selecting a device.
+            if bleManager.connectionState == .scanning {
+                bleManager.disconnect()
+            }
+        }) {
             DeviceListSheet()
         }
     }
@@ -104,9 +109,11 @@ struct DeviceListSheet: View {
                             HStack {
                                 Image(systemName: "antenna.radiowaves.left.and.right")
                                     .foregroundStyle(.blue)
+                                    .accessibilityHidden(true)
                                 VStack(alignment: .leading) {
                                     Text(peripheral.name ?? "Unknown Device")
                                         .fontWeight(.medium)
+                                        .lineLimit(1)
                                     Text(peripheral.identifier.uuidString.prefix(8) + "...")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
@@ -114,6 +121,7 @@ struct DeviceListSheet: View {
                                 Spacer()
                                 Image(systemName: "chevron.right")
                                     .foregroundStyle(.secondary)
+                                    .accessibilityHidden(true)
                             }
                         }
                         .foregroundStyle(.primary)

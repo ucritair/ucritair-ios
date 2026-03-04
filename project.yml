@@ -23,6 +23,7 @@ targets:
         INFOPLIST_FILE: uCritAir/App/Info.plist
         SWIFT_STRICT_CONCURRENCY: targeted
         GENERATE_INFOPLIST_FILE: false
+        TARGETED_DEVICE_FAMILY: "1"
     info:
       path: uCritAir/App/Info.plist
       properties:
@@ -33,12 +34,14 @@ targets:
         CFBundleShortVersionString: "1.0"
         CFBundlePackageType: APPL
         CFBundleExecutable: uCritAir
+        LSRequiresIPhoneOS: true
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         NSBluetoothAlwaysUsageDescription: "uCritAir needs Bluetooth to connect to your air quality monitor."
-        UIBackgroundModes:
-          - bluetooth-central
+        ITSAppUsesNonExemptEncryption: false
+        UIRequiredDeviceCapabilities:
+          - bluetooth-le
 
   uCritAirTests:
     type: bundle.unit-test

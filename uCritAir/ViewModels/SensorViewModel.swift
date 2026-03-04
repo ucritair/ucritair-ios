@@ -24,19 +24,27 @@ final class SensorViewModel {
     // MARK: - Configuration
 
     /// Wire up BLE sensor update callbacks. Call once at app startup.
+    @MainActor
     func configure(bleManager: BLEManager) {
         self.bleManager = bleManager
 
         bleManager.onSensorUpdate = { [weak self] partial in
-            self?.handleSensorUpdate(partial)
+            guard let self else { return }
+            // BLE callbacks are dispatched on the main queue (CBCentralManager queue: .main).
+            MainActor.assumeIsolated {
+                self.handleSensorUpdate(partial)
+            }
         }
 
         // Also listen for connection state to reset on disconnect
         let existingCallback = bleManager.onConnectionStateChanged
         bleManager.onConnectionStateChanged = { [weak self] state in
             existingCallback?(state)
+            guard let self else { return }
             if state == .disconnected {
-                self?.reset()
+                MainActor.assumeIsolated {
+                    self.reset()
+                }
             }
         }
     }

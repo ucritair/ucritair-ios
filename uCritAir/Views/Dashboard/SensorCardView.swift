@@ -53,7 +53,7 @@ struct SensorCardView: View {
                         .fill(status.color)
                         .frame(width: 6, height: 6)
                     Text(status.label)
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.caption2.weight(.medium))
                         .foregroundStyle(status.color)
                 }
             } else {
@@ -61,7 +61,7 @@ struct SensorCardView: View {
                     Circle()
                         .frame(width: 6, height: 6)
                     Text(" ")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.caption2.weight(.medium))
                 }
                 .hidden()
             }
@@ -72,9 +72,10 @@ struct SensorCardView: View {
                     .frame(height: 24)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.caption2.weight(.semibold))
                     .foregroundStyle(.quaternary)
                     .padding(.bottom, 2)
+                    .accessibilityHidden(true)
             }
         }
         .padding(12)

@@ -20,6 +20,9 @@ final class BLEManager: NSObject {
     var connectionState: ConnectionState = .disconnected
     private(set) var discoveredPeripherals: [CBPeripheral] = []
 
+    /// Current Bluetooth hardware/authorization state for UI feedback.
+    private(set) var bluetoothState: CBManagerState = .unknown
+
     // MARK: - Internal State
 
     private(set) var connectedPeripheral: CBPeripheral?
@@ -127,8 +130,9 @@ final class BLEManager: NSObject {
         centralManager.connect(peripheral, options: nil)
     }
 
-    /// Disconnect from the current device.
+    /// Disconnect from the current device and stop any active scan.
     func disconnect() {
+        centralManager.stopScan()
         stopCurrentCellPolling()
         cancelConnectTimeout()
         reconnectAttempts = maxReconnectAttempts // prevent auto-reconnect
@@ -154,6 +158,10 @@ final class BLEManager: NSObject {
 
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.main.async {
+                if self.pendingReads[uuid] != nil {
+                    continuation.resume(throwing: BLEError.operationInProgress)
+                    return
+                }
                 self.pendingReads[uuid] = continuation
                 peripheral.readValue(for: char)
             }
@@ -171,6 +179,10 @@ final class BLEManager: NSObject {
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             DispatchQueue.main.async {
+                if self.pendingWrites[uuid] != nil {
+                    continuation.resume(throwing: BLEError.operationInProgress)
+                    return
+                }
                 self.pendingWrites[uuid] = continuation
                 peripheral.writeValue(data, for: char, type: .withResponse)
             }
@@ -188,6 +200,10 @@ final class BLEManager: NSObject {
 
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.main.async {
+                if self.pendingReads[uuid] != nil {
+                    continuation.resume(throwing: BLEError.operationInProgress)
+                    return
+                }
                 self.pendingReads[uuid] = continuation
                 peripheral.readValue(for: char)
             }
@@ -203,18 +219,36 @@ final class BLEManager: NSObject {
         onConnectionStateChanged?(state)
     }
 
+    /// Resume all pending read/write/service-discovery continuations with a
+    /// disconnection error, then clear the dictionaries.
+    ///
+    /// Must be called before clearing `pendingReads`/`pendingWrites` so that
+    /// callers awaiting a BLE response receive a clean error instead of leaking forever.
+    private func failPendingContinuations() {
+        for (_, continuation) in pendingReads {
+            continuation.resume(throwing: BLEError.notConnected)
+        }
+        pendingReads = [:]
+        for (_, continuation) in pendingWrites {
+            continuation.resume(throwing: BLEError.notConnected)
+        }
+        pendingWrites = [:]
+        if let sc = serviceDiscoveryContinuation {
+            sc.resume(throwing: BLEError.notConnected)
+            serviceDiscoveryContinuation = nil
+        }
+    }
+
     /// Reset all connection-related state to a clean baseline.
     ///
-    /// Clears the peripheral reference, cached services and characteristics,
-    /// pending read/write continuations, and the log stream callback.
+    /// Resumes any pending continuations with a disconnection error before clearing
+    /// the peripheral reference, cached services/characteristics, and the log stream callback.
     private func cleanupConnection() {
         connectedPeripheral = nil
         customService = nil
         essService = nil
         characteristicCache = [:]
-        pendingReads = [:]
-        pendingWrites = [:]
-        serviceDiscoveryContinuation = nil
+        failPendingContinuations()
         onLogStreamNotification = nil
     }
 
@@ -310,24 +344,31 @@ final class BLEManager: NSObject {
 
     /// Write the live-cell selector (`0xFFFFFFFF`) and read back the cell data.
     ///
-    /// The write selects the device's current (live) log cell, then after a
-    /// short delay the cell data characteristic is read. The parsed result
-    /// provides VOC, NOx, and PM4.0 values not available via ESS.
+    /// Uses the async `writeCharacteristic`/`readCharacteristic` API to participate
+    /// in the concurrency guard — prevents stealing continuations from concurrent
+    /// callers (e.g. `writeCellSelector` / `readCellData` during log streaming).
+    /// Poll failures are silently ignored; the next timer tick will retry.
     private func pollCurrentCell() {
-        guard let peripheral = connectedPeripheral,
-              let selectorChar = characteristicCache[BLEConstants.charCellSelector],
-              let dataChar = characteristicCache[BLEConstants.charCellData] else { return }
+        guard connectionState == .connected else { return }
 
-        // Write 0xFFFFFFFF to cell selector
-        var selectorData = Data(count: 4)
-        selectorData.writeUInt32LE(BLEConstants.logStreamEndMarker, at: 0)
-        peripheral.writeValue(selectorData, for: selectorChar, type: .withResponse)
-
-        // Read will happen in didWriteValueFor callback → then we read cell data
-        // For simplicity, we read after a small delay to allow the write to complete
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            guard self?.connectionState == .connected else { return }
-            peripheral.readValue(for: dataChar)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                var selectorData = Data(count: 4)
+                selectorData.writeUInt32LE(BLEConstants.logStreamEndMarker, at: 0)
+                try await self.writeCharacteristic(BLEConstants.charCellSelector, data: selectorData)
+                let data = try await self.readCharacteristic(BLEConstants.charCellData)
+                guard data.count >= BLEConstants.logCellNotificationSize else { return }
+                let cell = BLEParsers.parseLogCell(data)
+                var update = PartialSensorUpdate()
+                if cell.voc > 0 { update.voc = Double(cell.voc) }
+                if cell.nox > 0 { update.nox = Double(cell.nox) }
+                update.pm4_0 = cell.pm.2 // PM4.0
+                self.onSensorUpdate?(update)
+            } catch {
+                // Polling errors are expected during reconnection or concurrent operations.
+                // Silently ignore — the next poll will retry.
+            }
         }
     }
 
@@ -340,6 +381,8 @@ final class BLEManager: NSObject {
         cancelConnectTimeout()
         customService = nil
         essService = nil
+        characteristicCache = [:]
+        failPendingContinuations()
 
         if reconnectAttempts < maxReconnectAttempts, let peripheral = connectedPeripheral {
             setState(.reconnecting)
@@ -377,12 +420,20 @@ extension BLEManager: CBCentralManagerDelegate {
     /// Called when the Bluetooth radio state changes (e.g. poweredOn, poweredOff).
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         logger.info("Central manager state: \(central.state.rawValue)")
-        if central.state == .poweredOn {
+        bluetoothState = central.state
+
+        switch central.state {
+        case .poweredOn:
             onBluetoothReady?()
             onBluetoothReady = nil  // Fire only once
-        }
-        if central.state != .poweredOn && connectionState == .scanning {
-            setState(.disconnected)
+        case .poweredOff, .unauthorized, .unsupported:
+            if connectionState == .scanning || connectionState == .connecting {
+                setState(.disconnected)
+            }
+        default:
+            if connectionState == .scanning {
+                setState(.disconnected)
+            }
         }
     }
 
@@ -411,7 +462,10 @@ extension BLEManager: CBCentralManagerDelegate {
     }
 
     /// Called when the peripheral disconnects (clean or unexpected). Triggers reconnection logic.
+    /// Guarded against double-fire — an intentional `disconnect()` already moves to `.disconnected`
+    /// before CoreBluetooth delivers this callback, so we skip the redundant `handleDisconnect()`.
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        guard connectionState != .disconnected else { return }
         logger.info("Disconnected: \(error?.localizedDescription ?? "clean")")
         handleDisconnect()
     }
@@ -491,35 +545,43 @@ extension BLEManager: CBPeripheralDelegate {
             return
         }
 
-        // Handle ESS notifications and reads
+        // Handle ESS notifications and reads.
+        // Each parser requires a minimum byte count — guard to avoid crashes on truncated BLE data.
         guard let data = characteristic.value else { return }
 
         switch uuid {
         case BLEConstants.essTemperature:
+            guard data.count >= 2 else { break }
             let temp = BLEParsers.parseTemperature(data)
             onSensorUpdate?(PartialSensorUpdate(temperature: temp))
 
         case BLEConstants.essHumidity:
+            guard data.count >= 2 else { break }
             let hum = BLEParsers.parseHumidity(data)
             onSensorUpdate?(PartialSensorUpdate(humidity: hum))
 
         case BLEConstants.essCO2:
+            guard data.count >= 2 else { break }
             let co2 = BLEParsers.parseCO2(data)
             onSensorUpdate?(PartialSensorUpdate(co2: co2))
 
         case BLEConstants.essPM2_5:
+            guard data.count >= 2 else { break }
             let pm = BLEParsers.parsePM(data)
             onSensorUpdate?(PartialSensorUpdate(pm2_5: pm))
 
         case BLEConstants.essPressure:
+            guard data.count >= 4 else { break }
             let pres = BLEParsers.parsePressure(data)
             onSensorUpdate?(PartialSensorUpdate(pressure: pres))
 
         case BLEConstants.essPM1_0:
+            guard data.count >= 2 else { break }
             let pm = BLEParsers.parsePM(data)
             onSensorUpdate?(PartialSensorUpdate(pm1_0: pm))
 
         case BLEConstants.essPM10:
+            guard data.count >= 2 else { break }
             let pm = BLEParsers.parsePM(data)
             onSensorUpdate?(PartialSensorUpdate(pm10: pm))
 
@@ -569,6 +631,7 @@ enum BLEError: LocalizedError {
     case characteristicNotFound(CBUUID)
     case noData
     case timeout
+    case operationInProgress
 
     var errorDescription: String? {
         switch self {
@@ -576,6 +639,7 @@ enum BLEError: LocalizedError {
         case .characteristicNotFound(let uuid): return "Characteristic not found: \(uuid)"
         case .noData: return "No data received"
         case .timeout: return "Connection timed out"
+        case .operationInProgress: return "Another operation is already in progress for this characteristic"
         }
     }
 }

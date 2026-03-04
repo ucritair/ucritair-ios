@@ -15,7 +15,7 @@ enum BLECharacteristics {
 
     /// Write device name string.
     static func writeDeviceName(_ name: String, using manager: BLEManager) async throws {
-        guard let data = name.data(using: .utf8) else { return }
+        guard let data = name.data(using: .utf8) else { throw BLEError.noData }
         try await manager.writeCharacteristic(BLEConstants.charDeviceName, data: data)
     }
 
@@ -24,6 +24,7 @@ enum BLECharacteristics {
     /// Read device time as Unix timestamp (seconds).
     static func readTime(using manager: BLEManager) async throws -> UInt32 {
         let data = try await manager.readCharacteristic(BLEConstants.charTime)
+        guard data.count >= 4 else { throw BLEError.noData }
         return data.readUInt32LE(at: 0)
     }
 
@@ -39,6 +40,7 @@ enum BLECharacteristics {
     /// Read total log cell count.
     static func readCellCount(using manager: BLEManager) async throws -> UInt32 {
         let data = try await manager.readCharacteristic(BLEConstants.charCellCount)
+        guard data.count >= 4 else { throw BLEError.noData }
         return data.readUInt32LE(at: 0)
     }
 
@@ -49,9 +51,12 @@ enum BLECharacteristics {
         try await manager.writeCharacteristic(BLEConstants.charCellSelector, data: data)
     }
 
-    /// Read selected cell data.
+    /// Read selected cell data (57 bytes: 4-byte cell_nr + 53-byte cell data).
     static func readCellData(using manager: BLEManager) async throws -> ParsedLogCell {
         let data = try await manager.readCharacteristic(BLEConstants.charCellData)
+        guard data.count >= BLEConstants.logCellNotificationSize else {
+            throw BLEError.noData
+        }
         return BLEParsers.parseLogCell(data)
     }
 
@@ -60,6 +65,7 @@ enum BLECharacteristics {
     /// Read pet stats (6 bytes).
     static func readStats(using manager: BLEManager) async throws -> PetStats {
         let data = try await manager.readCharacteristic(BLEConstants.charStats)
+        guard data.count >= 6 else { throw BLEError.noData }
         return BLEParsers.parseStats(data)
     }
 
@@ -80,6 +86,7 @@ enum BLECharacteristics {
     /// Read bonus value.
     static func readBonus(using manager: BLEManager) async throws -> UInt32 {
         let data = try await manager.readCharacteristic(BLEConstants.charBonus)
+        guard data.count >= 4 else { throw BLEError.noData }
         return data.readUInt32LE(at: 0)
     }
 
@@ -101,7 +108,7 @@ enum BLECharacteristics {
 
     /// Write pet name string.
     static func writePetName(_ name: String, using manager: BLEManager) async throws {
-        guard let data = name.data(using: .utf8) else { return }
+        guard let data = name.data(using: .utf8) else { throw BLEError.noData }
         try await manager.writeCharacteristic(BLEConstants.charPetName, data: data)
     }
 
@@ -110,6 +117,7 @@ enum BLECharacteristics {
     /// Read device configuration (16 bytes).
     static func readDeviceConfig(using manager: BLEManager) async throws -> DeviceConfig {
         let data = try await manager.readCharacteristic(BLEConstants.charDeviceConfig)
+        guard data.count >= 16 else { throw BLEError.noData }
         return DeviceConfig.parse(from: data)
     }
 

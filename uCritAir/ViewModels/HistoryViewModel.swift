@@ -97,6 +97,11 @@ final class HistoryViewModel {
     private var isConfigured = false
     private var hasAutoDownloaded = false
 
+    /// Cached CSV file URL — regenerated only when `allCells.count` changes.
+    private var cachedCSVURL: URL?
+    /// Cell count when ``cachedCSVURL`` was last generated.
+    private var csvCellCountSnapshot: Int = 0
+
     private let logger = Logger(subsystem: "com.ucritter.ucritair", category: "History")
 
     // MARK: - Sensor Definitions (matching web app colors/scales)
@@ -329,7 +334,7 @@ final class HistoryViewModel {
             cachedCount = allCells.count
             logger.info("loadCachedCells: loaded \(self.allCells.count) cells for device \(deviceId)")
         } catch {
-            self.error = "Failed to load cached cells: \(error.localizedDescription)"
+            self.error = "Failed to load cached data. Try restarting the app."
             logger.error("loadCachedCells failed: \(error)")
         }
     }
@@ -385,7 +390,7 @@ final class HistoryViewModel {
             isStreaming = false
             streamProgress = nil
         } catch {
-            self.error = "Download failed: \(error.localizedDescription)"
+            self.error = "Download failed. Check that the device is nearby and try again."
             logger.error("Download failed: \(error)")
             isStreaming = false
             streamProgress = nil
@@ -447,16 +452,24 @@ final class HistoryViewModel {
             allCells = []
             cachedCount = 0
         } catch {
-            self.error = "Failed to clear cache: \(error.localizedDescription)"
+            self.error = "Failed to clear cache. Try again."
         }
     }
 
     /// Generate CSV file URL for sharing.
+    /// Caches the result and only regenerates when the cell count changes,
+    /// since this is called from the toolbar on every view render.
     func csvFileURL() -> URL? {
         let cells = allCells
         guard !cells.isEmpty else { return nil }
+        if cells.count == csvCellCountSnapshot, let url = cachedCSVURL {
+            return url
+        }
         let csv = CSVExporter.toCSV(cells)
-        return try? CSVExporter.writeTemporaryFile(csv)
+        let url = try? CSVExporter.writeTemporaryFile(csv)
+        cachedCSVURL = url
+        csvCellCountSnapshot = cells.count
+        return url
     }
 
     // MARK: - Auto-Poll

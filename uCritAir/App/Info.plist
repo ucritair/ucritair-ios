@@ -7,24 +7,28 @@
 	<key>CFBundleDisplayName</key>
 	<string>uCritAir</string>
 	<key>CFBundleExecutable</key>
-	<string>uCritAir</string>
+	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.ucritter.ucritair</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>uCritAir</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>uCritAir needs Bluetooth to connect to your air quality monitor.</string>
-	<key>UIBackgroundModes</key>
+	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>bluetooth-central</string>
+		<string>bluetooth-le</string>
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>

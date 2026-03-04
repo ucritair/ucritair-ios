@@ -102,6 +102,27 @@ extension Data {
         return Float(bitPattern: bits)
     }
 
+    // MARK: - Hex Conversion
+
+    /// Converts the data to a space-separated uppercase hex string (e.g. `"CA 7D F0 01"`).
+    var hexString: String {
+        map { String(format: "%02X", $0) }.joined(separator: " ")
+    }
+
+    /// Parses a space-separated hex string (e.g. `"CA 7D F0 01"`) back to `Data`.
+    ///
+    /// - Parameter hex: Space-separated hex bytes. Each token must be exactly 2 hex characters.
+    /// - Returns: The decoded `Data`, or `nil` if any token is invalid.
+    static func fromHexString(_ hex: String) -> Data? {
+        let tokens = hex.split(separator: " ")
+        var bytes: [UInt8] = []
+        for token in tokens {
+            guard token.count == 2, let byte = UInt8(token, radix: 16) else { return nil }
+            bytes.append(byte)
+        }
+        return Data(bytes)
+    }
+
     // MARK: - Write (Little-Endian)
 
     /// Writes an unsigned 16-bit integer in little-endian byte order.

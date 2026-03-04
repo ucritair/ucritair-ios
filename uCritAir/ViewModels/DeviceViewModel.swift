@@ -42,11 +42,29 @@ final class DeviceViewModel {
     /// User-facing error message from the most recent failed operation, or `nil` if no error.
     var error: String?
 
+    /// Human-readable Bluetooth status message shown when BT is unavailable (off, denied, unsupported).
+    /// `nil` when Bluetooth is powered on and available.
+    /// Derived from ``BLEManager/bluetoothState`` — auto-updates via `@Observable`.
+    var bluetoothStatusMessage: String? {
+        guard let state = bleManager?.bluetoothState else { return nil }
+        switch state {
+        case .poweredOff:
+            return "Bluetooth is turned off. Enable it in Settings to connect."
+        case .unauthorized:
+            return "Bluetooth permission denied. Enable it in Settings > Privacy > Bluetooth."
+        case .unsupported:
+            return "This device does not support Bluetooth Low Energy."
+        default:
+            return nil
+        }
+    }
+
     /// All device profiles persisted in SwiftData, sorted by ``DeviceProfile/sortOrder``.
     var knownDevices: [DeviceProfile] = []
 
     /// Reference to the shared BLE manager for connection and characteristic operations.
-    private var bleManager: BLEManager?
+    /// Exposed as read-only for the Raw BLE Inspector in the Developer Tools view.
+    private(set) var bleManager: BLEManager?
 
     /// SwiftData model context for persisting device profiles and log cells.
     private var modelContext: ModelContext?
@@ -69,20 +87,24 @@ final class DeviceViewModel {
     // MARK: - Configuration
 
     /// Wire up BLE manager callbacks. Call once at app startup.
+    @MainActor
     func configure(bleManager: BLEManager) {
         self.bleManager = bleManager
 
         bleManager.onConnectionStateChanged = { [weak self] state in
             guard let self else { return }
-            self.connectionState = state
-            if state == .connected {
-                Task { @MainActor in
-                    await self.refreshDeviceInfo()
-                    self.upsertDeviceProfile()
+            // BLE callbacks are dispatched on the main queue (CBCentralManager queue: .main).
+            MainActor.assumeIsolated {
+                self.connectionState = state
+                if state == .connected {
+                    Task { @MainActor in
+                        await self.refreshDeviceInfo()
+                        self.upsertDeviceProfile()
+                    }
                 }
-            }
-            if state == .disconnected {
-                self.clearDeviceInfo()
+                if state == .disconnected {
+                    self.clearDeviceInfo()
+                }
             }
         }
     }
@@ -112,7 +134,7 @@ final class DeviceViewModel {
             knownDevices = try ctx.fetch(descriptor)
             logger.info("loadKnownDevices: found \(self.knownDevices.count) devices")
         } catch {
-            self.error = "Failed to load devices: \(error.localizedDescription)"
+            self.error = "Failed to load devices. Try restarting the app."
             logger.error("loadKnownDevices failed: \(error)")
         }
     }
@@ -160,7 +182,7 @@ final class DeviceViewModel {
             loadKnownDevices()
             logger.info("upsertDeviceProfile: saved. knownDevices count = \(self.knownDevices.count)")
         } catch {
-            self.error = "Failed to save device profile: \(error.localizedDescription)"
+            self.error = "Failed to save device profile. Try restarting the app."
             logger.error("upsertDeviceProfile failed: \(error)")
         }
     }
@@ -177,7 +199,7 @@ final class DeviceViewModel {
             try ctx.save()
             loadKnownDevices()
         } catch {
-            self.error = "Failed to remove device: \(error.localizedDescription)"
+            self.error = "Failed to remove device. Try again."
         }
     }
 
@@ -190,7 +212,7 @@ final class DeviceViewModel {
             try ctx.save()
             loadKnownDevices()
         } catch {
-            self.error = "Failed to update room label: \(error.localizedDescription)"
+            self.error = "Failed to update room label. Try again."
         }
     }
 
@@ -254,7 +276,7 @@ final class DeviceViewModel {
             bonus = try await BLECharacteristics.readBonus(using: manager)
             cellCount = try await BLECharacteristics.readCellCount(using: manager)
         } catch {
-            self.error = "Failed to read device info: \(error.localizedDescription)"
+            self.error = Self.friendlyMessage(for: error, context: "Failed to read device info")
             logger.error("Failed to read device info: \(error)")
         }
     }
@@ -268,8 +290,70 @@ final class DeviceViewModel {
             try await BLECharacteristics.writeTime(epoch, using: manager)
             deviceTime = epoch
         } catch {
-            self.error = "Failed to sync time: \(error.localizedDescription)"
+            self.error = Self.friendlyMessage(for: error, context: "Failed to sync time")
         }
+    }
+
+    /// Write a new device name to the connected device and refresh cached state.
+    @MainActor
+    func writeDeviceName(_ name: String) async {
+        guard let manager = bleManager else { return }
+        do {
+            try await BLECharacteristics.writeDeviceName(name, using: manager)
+            deviceName = name
+            upsertDeviceProfile()
+        } catch {
+            self.error = Self.friendlyMessage(for: error, context: "Failed to save device name")
+            logger.error("writeDeviceName failed: \(error)")
+        }
+    }
+
+    /// Write a new pet name to the connected device and refresh cached state.
+    @MainActor
+    func writePetName(_ name: String) async {
+        guard let manager = bleManager else { return }
+        do {
+            try await BLECharacteristics.writePetName(name, using: manager)
+            petName = name
+            upsertDeviceProfile()
+        } catch {
+            self.error = Self.friendlyMessage(for: error, context: "Failed to save pet name")
+            logger.error("writePetName failed: \(error)")
+        }
+    }
+
+    /// Write updated device configuration to the connected device and re-read to confirm.
+    @MainActor
+    func writeConfig(_ newConfig: DeviceConfig) async {
+        guard let manager = bleManager else { return }
+        do {
+            try await BLECharacteristics.writeDeviceConfig(newConfig, using: manager)
+            config = try await BLECharacteristics.readDeviceConfig(using: manager)
+        } catch {
+            self.error = Self.friendlyMessage(for: error, context: "Failed to save config")
+            logger.error("writeConfig failed: \(error)")
+        }
+    }
+
+    /// Write an arbitrary Unix timestamp to the device's RTC clock.
+    @MainActor
+    func writeTime(_ unixSeconds: UInt32) async {
+        guard let manager = bleManager else { return }
+        do {
+            try await BLECharacteristics.writeTime(unixSeconds, using: manager)
+            deviceTime = unixSeconds
+        } catch {
+            self.error = Self.friendlyMessage(for: error, context: "Failed to set time")
+            logger.error("writeTime failed: \(error)")
+        }
+    }
+
+    /// Read a single log cell by index. Writes the cell selector, then reads cell data.
+    @MainActor
+    func readLogCell(at index: UInt32) async throws -> ParsedLogCell {
+        guard let manager = bleManager else { throw BLEError.notConnected }
+        try await BLECharacteristics.writeCellSelector(index, using: manager)
+        return try await BLECharacteristics.readCellData(using: manager)
     }
 
     private func clearDeviceInfo() {
@@ -282,5 +366,27 @@ final class DeviceViewModel {
         itemsPlaced = nil
         bonus = nil
         cellCount = nil
+    }
+
+    /// Map BLE errors to concise, user-friendly messages.
+    /// Raw CoreBluetooth error strings are cryptic; users need actionable guidance.
+    private static func friendlyMessage(for error: Error, context: String) -> String {
+        let nsError = error as NSError
+        // CBError domain
+        if nsError.domain == "CBErrorDomain" || nsError.domain == "CBATTErrorDomain" {
+            switch nsError.code {
+            case 6, 7: // disconnectedDuringRead/Write, connectionTimeout
+                return "\(context): Connection lost. Make sure the device is nearby and try again."
+            case 14: // CBATTError.unlikelyError
+                return "\(context): The device rejected the request. Try reconnecting."
+            default:
+                return "\(context): Bluetooth error. Try reconnecting to the device."
+            }
+        }
+        // BLEError from our own code
+        if error is BLEError {
+            return "\(context): \(error.localizedDescription)"
+        }
+        return "\(context): \(error.localizedDescription)"
     }
 }

@@ -57,8 +57,13 @@ struct uCritAirApp: App {
                 Logger(subsystem: "com.ucritter.ucritair", category: "App")
                     .critical("Failed to create ModelContainer after store reset: \(error). Using in-memory store.")
                 let memoryConfig = ModelConfiguration(isStoredInMemoryOnly: true)
-                // swiftlint:disable:next force_try
-                modelContainer = try! ModelContainer(for: schema, configurations: [memoryConfig])
+                do {
+                    modelContainer = try ModelContainer(for: schema, configurations: [memoryConfig])
+                } catch {
+                    // In-memory ModelContainer creation should never fail for a valid schema.
+                    // If it does, the app cannot function at all.
+                    fatalError("Unable to create even an in-memory ModelContainer: \(error)")
+                }
             }
         }
     }

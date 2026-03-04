@@ -12,6 +12,9 @@ struct ContentView: View {
     /// Index of the currently selected tab (0 = Dashboard, 1 = Data, 2 = Devices, 3 = Developer).
     @State private var selectedTab = 0
 
+    /// Guards the one-time auto-navigation to the Devices tab on first launch.
+    @State private var hasCheckedInitialDevices = false
+
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
@@ -48,13 +51,7 @@ struct ContentView: View {
             .tag(2)
 
             NavigationStack {
-                DeveloperPlaceholderView()
-                    .navigationTitle("Developer")
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            ConnectButton()
-                        }
-                    }
+                DeveloperToolsView()
             }
             .tabItem {
                 Label("Developer", systemImage: "wrench")
@@ -63,19 +60,21 @@ struct ContentView: View {
         }
         .onAppear {
             deviceVM.configureStorage(modelContext: modelContext)
+
+            // On first launch with no paired devices, navigate to Devices tab.
+            if !hasCheckedInitialDevices {
+                hasCheckedInitialDevices = true
+                if deviceVM.knownDevices.isEmpty {
+                    selectedTab = 2
+                }
+            }
+
             // Auto-connect to last device when Bluetooth is ready.
             // Delay 1s after poweredOn so the BLE radio has time to discover nearby peripherals.
             bleManager.whenBluetoothReady {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     deviceVM.autoConnectToLastDevice()
                 }
-            }
-        }
-        .task {
-            // Wait for configureStorage to load known devices from SwiftData
-            try? await Task.sleep(for: .milliseconds(100))
-            if deviceVM.knownDevices.isEmpty {
-                selectedTab = 2  // Auto-navigate to Devices tab
             }
         }
     }
@@ -92,42 +91,18 @@ struct ContentView: View {
                     Text(petName)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.blue)
+                        .lineLimit(1)
                 }
                 if let deviceName = deviceVM.deviceName, !deviceName.isEmpty {
                     Text(deviceName)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Color(.systemGray5))
                         .clipShape(Capsule())
                 }
-            }
-        }
-    }
-}
-
-// MARK: - Developer Placeholder
-
-/// Debug/diagnostic view showing internal stats (cached cell count, device ID, known devices).
-struct DeveloperPlaceholderView: View {
-    @Environment(HistoryViewModel.self) private var historyVM
-    @Environment(DeviceViewModel.self) private var deviceVM
-
-    var body: some View {
-        List {
-            Section("Log Cell Stats") {
-                LabeledContent("Cached Cells", value: "\(historyVM.cachedCount)")
-                if let cellCount = deviceVM.cellCount {
-                    LabeledContent("On Device", value: "\(cellCount)")
-                }
-            }
-
-            Section("Device Info") {
-                if let id = deviceVM.activeDeviceId {
-                    LabeledContent("Device ID", value: String(id.prefix(8)) + "...")
-                }
-                LabeledContent("Known Devices", value: "\(deviceVM.knownDevices.count)")
             }
         }
     }

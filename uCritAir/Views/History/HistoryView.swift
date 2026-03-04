@@ -34,7 +34,7 @@ struct HistoryView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("")
+        .navigationTitle("Data")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -124,14 +124,17 @@ struct HistoryView: View {
         if let error = historyVM.error {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
+                    .accessibilityHidden(true)
                 Text(error)
                     .font(.caption)
+                    .lineLimit(2)
                 Spacer()
                 Button {
                     historyVM.error = nil
                 } label: {
                     Image(systemName: "xmark")
                 }
+                .accessibilityLabel("Dismiss error")
             }
             .foregroundStyle(.white)
             .padding(10)
@@ -250,7 +253,7 @@ struct HistoryView: View {
     private func miniStat(label: String, value: String) -> some View {
         VStack(spacing: 1) {
             Text(label)
-                .font(.system(size: 10))
+                .font(.caption2)
                 .foregroundStyle(.tertiary)
             Text(value)
                 .font(.caption2.weight(.medium))

@@ -32,18 +32,37 @@ struct DashboardView: View {
     // MARK: - Disconnected
 
     /// Placeholder shown when no BLE device is connected, prompting the user to pair.
+    /// When Bluetooth is off or unauthorized, shows a specific message with a Settings link.
     private var disconnectedView: some View {
         VStack(spacing: 12) {
             Spacer(minLength: 60)
             Image(systemName: "antenna.radiowaves.left.and.right.slash")
                 .font(.system(size: 48))
                 .foregroundStyle(.secondary)
-            Text("No device connected")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            Text("Tap Connect to pair with your uCrit device")
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
+
+            if let btMessage = deviceVM.bluetoothStatusMessage {
+                Text(btMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                .buttonStyle(.bordered)
+            } else {
+                Text("No device connected")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Text("Tap Connect to pair with your uCrit device")
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
+            }
+
             Spacer(minLength: 60)
         }
         .frame(maxWidth: .infinity)

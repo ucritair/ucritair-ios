@@ -95,6 +95,24 @@ enum UnitFormatters {
         useFahrenheit ? "°F" : "°C"
     }
 
+    /// Cached formatter for device timestamps (medium date + medium time, GMT).
+    private static let dateTimeFormatter: DateFormatter = {
+        let fmt = DateFormatter()
+        fmt.dateStyle = .medium
+        fmt.timeStyle = .medium
+        fmt.timeZone = .gmt
+        return fmt
+    }()
+
+    /// Format a device timestamp (local-as-epoch UInt32) to a human-readable datetime string.
+    ///
+    /// Uses GMT timezone to avoid double-applying the timezone offset, since the device
+    /// already stores local time as if it were UTC.
+    static func fmtDateTime(_ epoch: UInt32) -> String {
+        let date = Date(timeIntervalSince1970: TimeInterval(epoch))
+        return dateTimeFormatter.string(from: date)
+    }
+
     /// Get local time as epoch-like number matching device convention.
     ///
     /// The uCrit firmware stores timestamps as "local time as epoch" — the local clock

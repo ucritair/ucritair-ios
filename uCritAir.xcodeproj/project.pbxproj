@@ -47,6 +47,7 @@
 		E2F3A4B5C6071829A3B4C5D7 /* DeviceListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6071829A3B4C5D6 /* DeviceListView.swift */; };
 		F3A4B5C60718293AB4C5D6E8 /* DeviceCardRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F60718293AB4C5D6E7 /* DeviceCardRow.swift */; };
 		A4B5C6D7E8F90123B4C5D6E9 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D5A6B7C8E9F01234A5B6C7D8 /* PrivacyInfo.xcprivacy */; };
+		B5C6D7E8F9012345C6D7E8FA /* CharacteristicDef.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B7C8D9E0F12345B7C8D9EA /* CharacteristicDef.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,6 +101,7 @@
 		DC35D50037C520C9EBF82FCD /* SensorReading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorReading.swift; sourceTree = "<group>"; };
 		E80B05D74A1A2C8EAC973200 /* BLECharacteristics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLECharacteristics.swift; sourceTree = "<group>"; };
 		D5A6B7C8E9F01234A5B6C7D8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A6B7C8D9E0F12345B7C8D9EA /* CharacteristicDef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacteristicDef.swift; sourceTree = "<group>"; };
 		EFE717DF033B359C5C55CD2A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FA1205C11A3F6D0A4DA8991D /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		FB944E23012DECE9E9C59B27 /* AQGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AQGaugeView.swift; sourceTree = "<group>"; };
@@ -148,6 +150,7 @@
 			isa = PBXGroup;
 			children = (
 				5E0D317ACF80196BB1361742 /* AQScoreResult.swift */,
+				A6B7C8D9E0F12345B7C8D9EA /* CharacteristicDef.swift */,
 				45FB5965C71309A53FD1730A /* DeviceConfig.swift */,
 				A1B2C3D4E5F60718293A4B5C /* DeviceProfile.swift */,
 				D66D724996B9E5B220D4F617 /* LogCellEntity.swift */,
@@ -390,6 +393,7 @@
 				B089BEC1C6675E2C26B270FD /* BLEManager.swift in Sources */,
 				1DBD3614A486BFF5E92C5899 /* BLEParsers.swift in Sources */,
 				74791EEF8D27B284E153453A /* CSVExporter.swift in Sources */,
+				B5C6D7E8F9012345C6D7E8FA /* CharacteristicDef.swift in Sources */,
 				4C3293C559D2B5CFD9F16C1C /* Color+Hex.swift in Sources */,
 				3B59AF1ABFF0174FE2BE0DD8 /* ConnectButton.swift in Sources */,
 				56BADF5600C85904F1B03EF6 /* ContentView.swift in Sources */,
@@ -443,7 +447,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ucritter.ucritair.tests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/uCritAir.app/uCritAir";
 			};
 			name = Release;
@@ -520,7 +524,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ucritter.ucritair;
 				SDKROOT = iphoneos;
 				SWIFT_STRICT_CONCURRENCY = targeted;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1";
 			};
 			name = Debug;
 		};
@@ -536,7 +540,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ucritter.ucritair.tests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/uCritAir.app/uCritAir";
 			};
 			name = Debug;
@@ -620,7 +624,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ucritter.ucritair;
 				SDKROOT = iphoneos;
 				SWIFT_STRICT_CONCURRENCY = targeted;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1";
 			};
 			name = Release;
 		};

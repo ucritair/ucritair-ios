@@ -2,11 +2,16 @@ import SwiftUI
 
 /// A single device card in the device list — Awair-style layout.
 /// Shows AQ score ring (if connected), pet name, device name, room label,
-/// and connection status.
+/// connection status, and action icons (gear + dashboard for connected devices).
 struct DeviceCardRow: View {
     let profile: DeviceProfile
     let isConnected: Bool
     let aqResult: AQScoreResult?
+
+    /// Callback when the gear (settings) icon is tapped. Only used for connected devices.
+    var onSettingsTap: (() -> Void)?
+    /// Callback when the dashboard icon is tapped. Only used for connected devices.
+    var onDashboardTap: (() -> Void)?
 
     /// Diameter of the inline AQ score circle in points.
     private let gaugeSize: CGFloat = 52
@@ -25,12 +30,14 @@ struct DeviceCardRow: View {
                 HStack(spacing: 6) {
                     Text(profile.petName.isEmpty ? "Unnamed" : profile.petName)
                         .font(.headline)
+                        .lineLimit(1)
 
                     // Device name badge
                     if !profile.deviceName.isEmpty {
                         Text(profile.deviceName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(Color(.systemGray5))
@@ -43,6 +50,7 @@ struct DeviceCardRow: View {
                     Text(room)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
 
                 // Connection status
@@ -73,12 +81,36 @@ struct DeviceCardRow: View {
 
             Spacer()
 
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            if isConnected {
+                HStack(spacing: 16) {
+                    Button {
+                        onSettingsTap?()
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Device settings")
+
+                    Button {
+                        onDashboardTap?()
+                    } label: {
+                        Image(systemName: "square.grid.2x2")
+                            .font(.title3)
+                            .foregroundStyle(.blue)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Go to dashboard")
+                }
+            } else {
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(.vertical, 6)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: isConnected ? .contain : .combine)
         .accessibilityLabel(deviceAccessibilityLabel)
     }
 

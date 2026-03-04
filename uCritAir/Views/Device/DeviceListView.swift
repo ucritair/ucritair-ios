@@ -1,18 +1,21 @@
 import SwiftUI
 
 /// Device management screen — Awair-style list of known devices.
-/// Replaces the old DevicePlaceholderView.
+///
+/// Connected devices show gear (settings) and dashboard action icons.
+/// Disconnected devices show a chevron and tap to reconnect + navigate to dashboard.
 struct DeviceListView: View {
     @Binding var selectedTab: Int
 
     @Environment(DeviceViewModel.self) private var deviceVM
-    @Environment(BLEManager.self) private var bleManager
     @Environment(SensorViewModel.self) private var sensorVM
     @Environment(\.modelContext) private var modelContext
 
     @State private var showDeleteConfirmation = false
     @State private var deviceToDelete: DeviceProfile?
     @State private var showScanSheet = false
+    /// Drives NavigationStack push to DeviceView for settings.
+    @State private var showSettings = false
 
     var body: some View {
         Group {
@@ -23,6 +26,9 @@ struct DeviceListView: View {
             }
         }
         .navigationTitle("Devices")
+        .navigationDestination(isPresented: $showSettings) {
+            DeviceView()
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -33,7 +39,12 @@ struct DeviceListView: View {
                 }
             }
         }
-        .sheet(isPresented: $showScanSheet) {
+        .sheet(isPresented: $showScanSheet, onDismiss: {
+            // Stop scanning if user swipe-dismissed the sheet without selecting a device.
+            if deviceVM.connectionState == .scanning {
+                deviceVM.disconnect()
+            }
+        }) {
             DeviceListSheet()
         }
         .alert("Remove Device", isPresented: $showDeleteConfirmation) {
@@ -97,16 +108,31 @@ struct DeviceListView: View {
                     ? AQIScoring.computeAQScore(sensorVM.current)
                     : nil
 
-                Button {
-                    handleDeviceTap(profile, isConnected: isConnected)
-                } label: {
-                    DeviceCardRow(
-                        profile: profile,
-                        isConnected: isConnected,
-                        aqResult: aqResult
-                    )
+                Group {
+                    if isConnected {
+                        // Connected device: card with gear + dashboard icons (no outer button)
+                        DeviceCardRow(
+                            profile: profile,
+                            isConnected: true,
+                            aqResult: aqResult,
+                            onSettingsTap: { showSettings = true },
+                            onDashboardTap: { selectedTab = 0 }
+                        )
+                    } else {
+                        // Disconnected device: tap to reconnect + navigate to dashboard
+                        Button {
+                            deviceVM.connectToKnownDevice(profile)
+                            selectedTab = 0
+                        } label: {
+                            DeviceCardRow(
+                                profile: profile,
+                                isConnected: false,
+                                aqResult: nil
+                            )
+                        }
+                        .foregroundStyle(.primary)
+                    }
                 }
-                .foregroundStyle(.primary)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         deviceToDelete = profile
@@ -138,23 +164,6 @@ struct DeviceListView: View {
                     }
                 }
             }
-        }
-    }
-
-    // MARK: - Actions
-
-    /// Handles a tap on a device row: navigates to the Dashboard if already connected, or initiates reconnection first.
-    /// - Parameters:
-    ///   - profile: The tapped device's persisted profile.
-    ///   - isConnected: Whether this device is the currently connected peripheral.
-    private func handleDeviceTap(_ profile: DeviceProfile, isConnected: Bool) {
-        if isConnected {
-            // Navigate to Dashboard for this device
-            selectedTab = 0
-        } else {
-            // Attempt reconnect, then navigate to Dashboard
-            deviceVM.connectToKnownDevice(profile)
-            selectedTab = 0
         }
     }
 }

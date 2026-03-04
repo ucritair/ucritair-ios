@@ -33,6 +33,7 @@ struct StatusBanner: View {
             if let error = deviceVM.error {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
+                        .accessibilityHidden(true)
                     Text(error)
                         .font(.caption)
                         .lineLimit(2)
@@ -42,6 +43,7 @@ struct StatusBanner: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                     }
+                    .accessibilityLabel("Dismiss error")
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 12)
