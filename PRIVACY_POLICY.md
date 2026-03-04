@@ -1,43 +1,30 @@
 # Privacy Policy — uCritAir
 
-**Last updated:** March 3, 2026
+**Last updated:** March 4, 2026
 
-## Summary
+uCritAir is designed for local operation. We do not collect, sell, or share personal data.
 
-uCritAir does not collect, transmit, or share any personal data. The app has no internet connection, no analytics, no tracking, and no ads.
+## What uCritAir Accesses
+- Bluetooth: used to communicate with your uCrit device.
+- Local storage (SwiftData): used to store downloaded sensor history on your iPhone.
 
-## What the App Does
+## What uCritAir Does Not Do
+- No user accounts
+- No analytics SDKs
+- No advertising SDKs
+- No tracking identifiers
+- No background telemetry uploads
 
-uCritAir connects to your uCrit air quality monitor over Bluetooth Low Energy (BLE) to display environmental sensor readings — such as temperature, humidity, CO₂, and particulate matter — on your iPhone.
+## Data Location and Retention
+- Sensor history remains on-device.
+- Data is removed when you delete app data, remove devices, or uninstall the app.
 
-## Data Storage
+## Network Usage
+- App functionality does not require sending sensor data to our servers.
+- If you open external links (for example, website or privacy pages), those pages load in your browser.
 
-Sensor readings downloaded from your device are stored locally on your iPhone using on-device storage (SwiftData). This data never leaves your phone.
-
-## No Internet Connection
-
-uCritAir does not connect to the internet. The app communicates only with your uCrit device over Bluetooth. There are no network requests, no cloud services, and no remote servers.
-
-## No Data Sharing
-
-Your sensor data is never shared with anyone — not with us, not with third parties, not with advertisers. It stays on your iPhone.
-
-## No Tracking or Analytics
-
-The app contains no analytics SDKs, no crash reporting services, no advertising identifiers, and no tracking of any kind.
-
-## No Accounts
-
-uCritAir does not require or support user accounts. There is no sign-up, no login, and no personal information collected.
-
-## Data Sent to the Device
-
-The app may send time-sync commands to your uCrit device to set its internal clock. No personal data is transmitted to the device.
-
-## Your Control
-
-You can delete all locally stored sensor data at any time by removing a device from the app or by deleting the app from your iPhone.
+## Data Sent to Device
+- The app may write operational settings to the device (for example, time sync and device configuration).
 
 ## Contact
-
-If you have questions about this privacy policy, contact us at https://ucritter.com.
+Questions: [https://ucritter.com](https://ucritter.com)

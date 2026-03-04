@@ -2,13 +2,8 @@ import Testing
 import SwiftUI
 @testable import uCritAir
 
-/// Unit tests for the ``AQIScoring`` engine, covering individual sensor scoring curves
-/// (CO2, temperature, humidity, PM2.5), letter-grade mapping, aggregate score computation,
-/// and sensor status label/color assignment.
 @Suite("AQI Scoring")
 struct AQIScoringTests {
-
-    // MARK: - Individual Sensor Scores
 
     @Test("CO2 scoring — 420 ppm is 0 (best)")
     func testCO2Good() {
@@ -76,8 +71,6 @@ struct AQIScoringTests {
         #expect(abs(score - 5.0) < 0.01)
     }
 
-    // MARK: - Letter Grades
-
     @Test("goodnessToGrade — 100 is A+")
     func testGradeMax() {
         #expect(AQIScoring.goodnessToGrade(100) == "A+")
@@ -93,8 +86,6 @@ struct AQIScoringTests {
         let grade = AQIScoring.goodnessToGrade(50)
         #expect(grade == "C" || grade == "C+" || grade == "C-")
     }
-
-    // MARK: - Aggregate Score
 
     @Test("Aggregate — all clean sensors")
     func testAggregateClean() {
@@ -127,8 +118,6 @@ struct AQIScoringTests {
         #expect(result.goodness == 100)
         #expect(result.grade == "A+")
     }
-
-    // MARK: - Sensor Status
 
     @Test("sensorStatus — good")
     func testSensorStatusGood() {

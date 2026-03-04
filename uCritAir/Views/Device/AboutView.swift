@@ -1,26 +1,17 @@
-// ────────────────────────────────────────────────────────────────────────────
-// AboutView.swift
-// uCritAir
-// ────────────────────────────────────────────────────────────────────────────
-
 import SwiftUI
 
-/// A simple About screen showing app info, privacy policy, and support links.
 struct AboutView: View {
 
-    /// The app version string from the main bundle (e.g. "1.0").
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
     }
 
-    /// The build number from the main bundle (e.g. "1").
     private var buildNumber: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
     }
 
     var body: some View {
         List {
-            // App identity
             Section {
                 HStack(spacing: 14) {
                     Image("AppIcon")
@@ -38,7 +29,6 @@ struct AboutView: View {
                 .padding(.vertical, 4)
             }
 
-            // Links
             Section {
                 if let url = URL(string: "https://ucritter.com/privacy") {
                     Link(destination: url) {
@@ -52,7 +42,6 @@ struct AboutView: View {
                 }
             }
 
-            // Attribution
             Section {
                 HStack {
                     Spacer()

@@ -17,38 +17,47 @@
 		3C0A54456700690B46F8F463 /* SensorChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45298821BEB90DA60AEA894F /* SensorChartView.swift */; };
 		4C3293C559D2B5CFD9F16C1C /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1922847BB2A64D55568F0F57 /* Color+Hex.swift */; };
 		56BADF5600C85904F1B03EF6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A012DA4BFEB8A6B5AC93E134 /* ContentView.swift */; };
+		58BD7937D21ECFEB99B2F888 /* SensorViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33AA9751C4A493D50FD79D87 /* SensorViewModelTests.swift */; };
+		5B01FA2E01FF7ECE8EE46202 /* CharacteristicDef.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDB30F70C309309F72CD0F6C /* CharacteristicDef.swift */; };
 		5B8D8A0D8BF7CDB5451E3DD2 /* DeviceConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45FB5965C71309A53FD1730A /* DeviceConfig.swift */; };
+		5D10E448FC62895122D02290 /* UnitFormattersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6F0D5D26AC7CF17551D3C7A /* UnitFormattersTests.swift */; };
 		5EF583A1731E3532D4D134EC /* AQScoreResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0D317ACF80196BB1361742 /* AQScoreResult.swift */; };
 		68B6D13E60D4007E90347B68 /* AQGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB944E23012DECE9E9C59B27 /* AQGaugeView.swift */; };
 		6A884C62676417765307FAF0 /* LogCellEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = D66D724996B9E5B220D4F617 /* LogCellEntity.swift */; };
 		6D0D264247B507D1249917DC /* DeviceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E0554BC2A8C8C7F5F86F498 /* DeviceView.swift */; };
-		BA10DC32FE54876910325476 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01CD23EF45678901234567 /* AboutView.swift */; };
 		6D80712FE89DEB44B2FF4FB5 /* LogCellStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7BEDA1B1115102887CF89C /* LogCellStore.swift */; };
 		6F46600CB7471C9742FF9FF2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EFE717DF033B359C5C55CD2A /* Assets.xcassets */; };
+		6FBD5786D16A077399393C8C /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5108CFD0DC3E12796B970863 /* AboutView.swift */; };
+		71468EBFF2A5E388FEA64F0B /* DeviceProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C08FFAC190B01533561949 /* DeviceProfile.swift */; };
 		721A937FAF8C55ADC24DC20D /* Data+Parsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81FB9EA2ED248D65F3DECA17 /* Data+Parsing.swift */; };
 		74791EEF8D27B284E153453A /* CSVExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53EEAB5574D0529A4A0E6CD2 /* CSVExporter.swift */; };
 		749DC5F302E9E3927D72F20D /* AQIScoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = B596D4CEBBEC117D1A256D74 /* AQIScoring.swift */; };
 		7C35659F7D294B5A4F1E2D2A /* BLEParsersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B47012FE27762014A19586D /* BLEParsersTests.swift */; };
 		8446CA2513172B311928FD59 /* BLELogStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00C49D1903DDF1EBDD2BE56 /* BLELogStream.swift */; };
+		90FA926CC05C3826636DA189 /* DataParsingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10BBA41EFC054814D4F833B5 /* DataParsingTests.swift */; };
 		99636CF71A5FDA0969A4DEB5 /* DeviceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB89372CC0DA50E061DF5078 /* DeviceViewModel.swift */; };
 		9FDFAB8460D7AF3686180611 /* SensorValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3964D088F85D06CE18688A8B /* SensorValues.swift */; };
 		A2A43FC898FAFF9C5948F598 /* HistoryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DEE1D8FA8D7BE4F26104BC2 /* HistoryViewModel.swift */; };
+		A3D6BA1DA156F2FDD57D8A5E /* ModelAndConstantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F4355C69E5461BD072EF750 /* ModelAndConstantTests.swift */; };
+		A57E951573577EB48C823780 /* TimelineFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD046CFA9F2D0FC5C45865A5 /* TimelineFilterTests.swift */; };
+		ACAA80E7B0B84723BDE92086 /* SensorValuesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D39F05C5F23DB901B6F0CEEB /* SensorValuesTests.swift */; };
 		AEA8EB87770104974C8CF240 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1205C11A3F6D0A4DA8991D /* DashboardView.swift */; };
 		B089BEC1C6675E2C26B270FD /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 742ECFBC97A0C91D1ECC678E /* BLEManager.swift */; };
 		B3CB2AA17BBEC7336C1DF0BB /* SensorReading.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC35D50037C520C9EBF82FCD /* SensorReading.swift */; };
+		B77EFEB00D622520E882BB1B /* DeviceListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0676ECB5430A617826557049 /* DeviceListView.swift */; };
+		BD2866ACAAE84F994EF45598 /* DeviceCardRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF3182D67924F47F4493FA9 /* DeviceCardRow.swift */; };
 		C1DD0AE7590F22665E84B5CA /* BLEConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 657DAA56EB1F91C40F4A4F8B /* BLEConstants.swift */; };
 		CA8A1EC320807681DE696656 /* SensorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 704EB31E257C8854D0EA27D7 /* SensorViewModel.swift */; };
+		CF61F041810308AEF6A44DD9 /* BLEManagerObserverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C790FEF3FC25287D11A77AD /* BLEManagerObserverTests.swift */; };
 		E0C86F5A5D171AF6A8431E50 /* TimelineFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C69DF7A5B0E9F0953F5A813 /* TimelineFilter.swift */; };
 		E197E519BA5771596159821D /* DeveloperView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3DA72B9369436D06918DCC6 /* DeveloperView.swift */; };
 		E5010D8397492B4F61A0911F /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25C463AECCD45A4796A6BB6 /* HistoryView.swift */; };
 		E7D02D815375D9244F7E8414 /* StatusBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4102EE871E67F3D74298018 /* StatusBanner.swift */; };
+		E9488B53FE5FE4249168411D /* HistoryViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 657F32749180DD029425B995 /* HistoryViewModelTests.swift */; };
 		EA96660D1485C9F675A5EBD6 /* ParsedLogCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81214D0032F9BB107F5F3D83 /* ParsedLogCell.swift */; };
 		ED69E7605293FA6D682B223D /* PetStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2BA379793262381CDEB1369 /* PetStats.swift */; };
-		D1E2F3A4B5C60718293A4B5D /* DeviceProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* DeviceProfile.swift */; };
-		E2F3A4B5C6071829A3B4C5D7 /* DeviceListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6071829A3B4C5D6 /* DeviceListView.swift */; };
-		F3A4B5C60718293AB4C5D6E8 /* DeviceCardRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F60718293AB4C5D6E7 /* DeviceCardRow.swift */; };
-		A4B5C6D7E8F90123B4C5D6E9 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D5A6B7C8E9F01234A5B6C7D8 /* PrivacyInfo.xcprivacy */; };
-		B5C6D7E8F9012345C6D7E8FA /* CharacteristicDef.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B7C8D9E0F12345B7C8D9EA /* CharacteristicDef.swift */; };
+		EDAD2E5B5B19E1846A7869A1 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 6D80FB1E5FA58AE2F75BB44F /* PrivacyInfo.xcprivacy */; };
+		F9CD0A3BD1446C0F3A618C33 /* LogCellStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 023A3016AF443DA68D7F20D7 /* LogCellStoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -63,23 +72,30 @@
 
 /* Begin PBXFileReference section */
 		0172870B80562AC081A31E4E /* uCritAirApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = uCritAirApp.swift; sourceTree = "<group>"; };
+		023A3016AF443DA68D7F20D7 /* LogCellStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogCellStoreTests.swift; sourceTree = "<group>"; };
+		0676ECB5430A617826557049 /* DeviceListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceListView.swift; sourceTree = "<group>"; };
 		0CF3F1C853BD5864D87ABF4A /* BLEParsers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEParsers.swift; sourceTree = "<group>"; };
+		10BBA41EFC054814D4F833B5 /* DataParsingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataParsingTests.swift; sourceTree = "<group>"; };
 		13E5B2569D2CC3095F6560D8 /* uCritAirTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = uCritAirTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1922847BB2A64D55568F0F57 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		1E0554BC2A8C8C7F5F86F498 /* DeviceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceView.swift; sourceTree = "<group>"; };
-		AB01CD23EF45678901234567 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5C /* DeviceProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceProfile.swift; sourceTree = "<group>"; };
-		B2C3D4E5F6071829A3B4C5D6 /* DeviceListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceListView.swift; sourceTree = "<group>"; };
-		C3D4E5F60718293AB4C5D6E7 /* DeviceCardRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCardRow.swift; sourceTree = "<group>"; };
 		2FB50C1B11D4869D04EECCA1 /* ConnectButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectButton.swift; sourceTree = "<group>"; };
+		33AA9751C4A493D50FD79D87 /* SensorViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorViewModelTests.swift; sourceTree = "<group>"; };
 		3964D088F85D06CE18688A8B /* SensorValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorValues.swift; sourceTree = "<group>"; };
+		39C08FFAC190B01533561949 /* DeviceProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceProfile.swift; sourceTree = "<group>"; };
+		3BF3182D67924F47F4493FA9 /* DeviceCardRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCardRow.swift; sourceTree = "<group>"; };
 		3E7BEDA1B1115102887CF89C /* LogCellStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogCellStore.swift; sourceTree = "<group>"; };
 		4301F96E2F74D3E56E454BBC /* uCritAir.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = uCritAir.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		45298821BEB90DA60AEA894F /* SensorChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorChartView.swift; sourceTree = "<group>"; };
 		45FB5965C71309A53FD1730A /* DeviceConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceConfig.swift; sourceTree = "<group>"; };
+		5108CFD0DC3E12796B970863 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		53EEAB5574D0529A4A0E6CD2 /* CSVExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVExporter.swift; sourceTree = "<group>"; };
 		5E0D317ACF80196BB1361742 /* AQScoreResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AQScoreResult.swift; sourceTree = "<group>"; };
+		5F4355C69E5461BD072EF750 /* ModelAndConstantTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelAndConstantTests.swift; sourceTree = "<group>"; };
 		657DAA56EB1F91C40F4A4F8B /* BLEConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEConstants.swift; sourceTree = "<group>"; };
+		657F32749180DD029425B995 /* HistoryViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViewModelTests.swift; sourceTree = "<group>"; };
+		6C790FEF3FC25287D11A77AD /* BLEManagerObserverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEManagerObserverTests.swift; sourceTree = "<group>"; };
+		6D80FB1E5FA58AE2F75BB44F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		704EB31E257C8854D0EA27D7 /* SensorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorViewModel.swift; sourceTree = "<group>"; };
 		742ECFBC97A0C91D1ECC678E /* BLEManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
 		7B47012FE27762014A19586D /* BLEParsersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEParsersTests.swift; sourceTree = "<group>"; };
@@ -91,22 +107,24 @@
 		A012DA4BFEB8A6B5AC93E134 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A25C463AECCD45A4796A6BB6 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		B596D4CEBBEC117D1A256D74 /* AQIScoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AQIScoring.swift; sourceTree = "<group>"; };
+		B6F0D5D26AC7CF17551D3C7A /* UnitFormattersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitFormattersTests.swift; sourceTree = "<group>"; };
 		BB89372CC0DA50E061DF5078 /* DeviceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceViewModel.swift; sourceTree = "<group>"; };
 		C2BA379793262381CDEB1369 /* PetStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PetStats.swift; sourceTree = "<group>"; };
 		C3DA72B9369436D06918DCC6 /* DeveloperView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperView.swift; sourceTree = "<group>"; };
 		C9DAFFF54AA61864BF73C5F3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		CD046CFA9F2D0FC5C45865A5 /* TimelineFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineFilterTests.swift; sourceTree = "<group>"; };
 		CDECA4C9DE87EC1D0AAF43F4 /* AQIScoringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AQIScoringTests.swift; sourceTree = "<group>"; };
 		D00C49D1903DDF1EBDD2BE56 /* BLELogStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLELogStream.swift; sourceTree = "<group>"; };
+		D39F05C5F23DB901B6F0CEEB /* SensorValuesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorValuesTests.swift; sourceTree = "<group>"; };
 		D4102EE871E67F3D74298018 /* StatusBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBanner.swift; sourceTree = "<group>"; };
 		D66D724996B9E5B220D4F617 /* LogCellEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogCellEntity.swift; sourceTree = "<group>"; };
 		D89AD14DCC5D7864422A182E /* SensorCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorCardView.swift; sourceTree = "<group>"; };
 		DC35D50037C520C9EBF82FCD /* SensorReading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorReading.swift; sourceTree = "<group>"; };
 		E80B05D74A1A2C8EAC973200 /* BLECharacteristics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLECharacteristics.swift; sourceTree = "<group>"; };
-		D5A6B7C8E9F01234A5B6C7D8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		A6B7C8D9E0F12345B7C8D9EA /* CharacteristicDef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacteristicDef.swift; sourceTree = "<group>"; };
 		EFE717DF033B359C5C55CD2A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FA1205C11A3F6D0A4DA8991D /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		FB944E23012DECE9E9C59B27 /* AQGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AQGaugeView.swift; sourceTree = "<group>"; };
+		FDB30F70C309309F72CD0F6C /* CharacteristicDef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacteristicDef.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -152,9 +170,9 @@
 			isa = PBXGroup;
 			children = (
 				5E0D317ACF80196BB1361742 /* AQScoreResult.swift */,
-				A6B7C8D9E0F12345B7C8D9EA /* CharacteristicDef.swift */,
+				FDB30F70C309309F72CD0F6C /* CharacteristicDef.swift */,
 				45FB5965C71309A53FD1730A /* DeviceConfig.swift */,
-				A1B2C3D4E5F60718293A4B5C /* DeviceProfile.swift */,
+				39C08FFAC190B01533561949 /* DeviceProfile.swift */,
 				D66D724996B9E5B220D4F617 /* LogCellEntity.swift */,
 				81214D0032F9BB107F5F3D83 /* ParsedLogCell.swift */,
 				C2BA379793262381CDEB1369 /* PetStats.swift */,
@@ -201,7 +219,7 @@
 			isa = PBXGroup;
 			children = (
 				EFE717DF033B359C5C55CD2A /* Assets.xcassets */,
-				D5A6B7C8E9F01234A5B6C7D8 /* PrivacyInfo.xcprivacy */,
+				6D80FB1E5FA58AE2F75BB44F /* PrivacyInfo.xcprivacy */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -221,9 +239,9 @@
 		A962ACD4270AB148B2AD009F /* Device */ = {
 			isa = PBXGroup;
 			children = (
-				AB01CD23EF45678901234567 /* AboutView.swift */,
-				C3D4E5F60718293AB4C5D6E7 /* DeviceCardRow.swift */,
-				B2C3D4E5F6071829A3B4C5D6 /* DeviceListView.swift */,
+				5108CFD0DC3E12796B970863 /* AboutView.swift */,
+				3BF3182D67924F47F4493FA9 /* DeviceCardRow.swift */,
+				0676ECB5430A617826557049 /* DeviceListView.swift */,
 				1E0554BC2A8C8C7F5F86F498 /* DeviceView.swift */,
 			);
 			path = Device;
@@ -276,7 +294,16 @@
 			isa = PBXGroup;
 			children = (
 				CDECA4C9DE87EC1D0AAF43F4 /* AQIScoringTests.swift */,
+				6C790FEF3FC25287D11A77AD /* BLEManagerObserverTests.swift */,
 				7B47012FE27762014A19586D /* BLEParsersTests.swift */,
+				10BBA41EFC054814D4F833B5 /* DataParsingTests.swift */,
+				657F32749180DD029425B995 /* HistoryViewModelTests.swift */,
+				023A3016AF443DA68D7F20D7 /* LogCellStoreTests.swift */,
+				5F4355C69E5461BD072EF750 /* ModelAndConstantTests.swift */,
+				D39F05C5F23DB901B6F0CEEB /* SensorValuesTests.swift */,
+				33AA9751C4A493D50FD79D87 /* SensorViewModelTests.swift */,
+				CD046CFA9F2D0FC5C45865A5 /* TimelineFilterTests.swift */,
+				B6F0D5D26AC7CF17551D3C7A /* UnitFormattersTests.swift */,
 			);
 			path = uCritAirTests;
 			sourceTree = "<group>";
@@ -335,7 +362,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1640;
+				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					70C82BC7C91D48A5AA9DC812 = {
 						DevelopmentTeam = "";
@@ -367,7 +394,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6F46600CB7471C9742FF9FF2 /* Assets.xcassets in Resources */,
-				A4B5C6D7E8F90123B4C5D6E9 /* PrivacyInfo.xcprivacy in Resources */,
+				EDAD2E5B5B19E1846A7869A1 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -379,7 +406,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				2A4CFF65575FBD5A96F684EE /* AQIScoringTests.swift in Sources */,
+				CF61F041810308AEF6A44DD9 /* BLEManagerObserverTests.swift in Sources */,
 				7C35659F7D294B5A4F1E2D2A /* BLEParsersTests.swift in Sources */,
+				90FA926CC05C3826636DA189 /* DataParsingTests.swift in Sources */,
+				E9488B53FE5FE4249168411D /* HistoryViewModelTests.swift in Sources */,
+				F9CD0A3BD1446C0F3A618C33 /* LogCellStoreTests.swift in Sources */,
+				A3D6BA1DA156F2FDD57D8A5E /* ModelAndConstantTests.swift in Sources */,
+				ACAA80E7B0B84723BDE92086 /* SensorValuesTests.swift in Sources */,
+				58BD7937D21ECFEB99B2F888 /* SensorViewModelTests.swift in Sources */,
+				A57E951573577EB48C823780 /* TimelineFilterTests.swift in Sources */,
+				5D10E448FC62895122D02290 /* UnitFormattersTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -390,24 +426,24 @@
 				68B6D13E60D4007E90347B68 /* AQGaugeView.swift in Sources */,
 				749DC5F302E9E3927D72F20D /* AQIScoring.swift in Sources */,
 				5EF583A1731E3532D4D134EC /* AQScoreResult.swift in Sources */,
+				6FBD5786D16A077399393C8C /* AboutView.swift in Sources */,
 				0C31B19B36DD6706E0C543CA /* BLECharacteristics.swift in Sources */,
 				C1DD0AE7590F22665E84B5CA /* BLEConstants.swift in Sources */,
 				8446CA2513172B311928FD59 /* BLELogStream.swift in Sources */,
 				B089BEC1C6675E2C26B270FD /* BLEManager.swift in Sources */,
 				1DBD3614A486BFF5E92C5899 /* BLEParsers.swift in Sources */,
 				74791EEF8D27B284E153453A /* CSVExporter.swift in Sources */,
-				B5C6D7E8F9012345C6D7E8FA /* CharacteristicDef.swift in Sources */,
+				5B01FA2E01FF7ECE8EE46202 /* CharacteristicDef.swift in Sources */,
 				4C3293C559D2B5CFD9F16C1C /* Color+Hex.swift in Sources */,
 				3B59AF1ABFF0174FE2BE0DD8 /* ConnectButton.swift in Sources */,
 				56BADF5600C85904F1B03EF6 /* ContentView.swift in Sources */,
 				AEA8EB87770104974C8CF240 /* DashboardView.swift in Sources */,
 				721A937FAF8C55ADC24DC20D /* Data+Parsing.swift in Sources */,
 				E197E519BA5771596159821D /* DeveloperView.swift in Sources */,
+				BD2866ACAAE84F994EF45598 /* DeviceCardRow.swift in Sources */,
 				5B8D8A0D8BF7CDB5451E3DD2 /* DeviceConfig.swift in Sources */,
-				BA10DC32FE54876910325476 /* AboutView.swift in Sources */,
-				F3A4B5C60718293AB4C5D6E8 /* DeviceCardRow.swift in Sources */,
-				E2F3A4B5C6071829A3B4C5D7 /* DeviceListView.swift in Sources */,
-				D1E2F3A4B5C60718293A4B5D /* DeviceProfile.swift in Sources */,
+				B77EFEB00D622520E882BB1B /* DeviceListView.swift in Sources */,
+				71468EBFF2A5E388FEA64F0B /* DeviceProfile.swift in Sources */,
 				6D0D264247B507D1249917DC /* DeviceView.swift in Sources */,
 				99636CF71A5FDA0969A4DEB5 /* DeviceViewModel.swift in Sources */,
 				E5010D8397492B4F61A0911F /* HistoryView.swift in Sources */,
@@ -451,7 +487,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ucritter.ucritair.tests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/uCritAir.app/uCritAir";
 			};
 			name = Release;
@@ -528,7 +564,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ucritter.ucritair;
 				SDKROOT = iphoneos;
 				SWIFT_STRICT_CONCURRENCY = targeted;
-				TARGETED_DEVICE_FAMILY = "1";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -544,7 +580,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ucritter.ucritair.tests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/uCritAir.app/uCritAir";
 			};
 			name = Debug;
@@ -619,6 +655,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 9A74XF5B5H;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = uCritAir/App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -627,8 +664,9 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ucritter.ucritair;
 				SDKROOT = iphoneos;
-				SWIFT_STRICT_CONCURRENCY = targeted;
-				TARGETED_DEVICE_FAMILY = "1";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
