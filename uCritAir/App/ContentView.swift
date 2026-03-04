@@ -19,10 +19,10 @@ struct ContentView: View {
                     .navigationTitle("uCritAir")
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
-                            connectedDeviceInfo
+                            ConnectButton()
                         }
                         ToolbarItem(placement: .topBarTrailing) {
-                            ConnectButton()
+                            connectedDeviceInfo
                         }
                     }
             }
@@ -51,7 +51,7 @@ struct ContentView: View {
                 DeveloperPlaceholderView()
                     .navigationTitle("Developer")
                     .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
+                        ToolbarItem(placement: .topBarLeading) {
                             ConnectButton()
                         }
                     }
