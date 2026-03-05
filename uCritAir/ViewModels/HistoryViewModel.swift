@@ -505,4 +505,31 @@ final class HistoryViewModel {
         timeRange = range
         if range != .oneDay { dayOffset = 0 }
     }
+
+    var selectedDate: Date {
+        let local = Calendar.current
+        let today = local.startOfDay(for: Date())
+        return local.date(byAdding: .day, value: dayOffset, to: today) ?? today
+    }
+
+    var dataDateRange: ClosedRange<Date> {
+        let local = Calendar.current
+        let today = local.startOfDay(for: Date())
+        guard let earliest = monotonicCells.first else {
+            return today...today
+        }
+        let earliestDate = local.startOfDay(
+            for: Date(timeIntervalSince1970: TimeInterval(earliest.timestamp))
+        )
+        return earliestDate...today
+    }
+
+    func jumpToDate(_ date: Date) {
+        let local = Calendar.current
+        let today = local.startOfDay(for: Date())
+        let target = local.startOfDay(for: date)
+        let offset = local.dateComponents([.day], from: today, to: target).day ?? 0
+        dayOffset = min(0, offset)
+        timeRange = .oneDay
+    }
 }

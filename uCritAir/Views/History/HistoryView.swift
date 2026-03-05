@@ -14,6 +14,8 @@ struct HistoryView: View {
 
     @State private var sensorScrollTarget: String?
 
+    @State private var showDatePicker = false
+
     var body: some View {
         GeometryReader { geo in
             ScrollView {
@@ -304,8 +306,26 @@ struct HistoryView: View {
                 }
                 .transition(.opacity.combined(with: .move(edge: .trailing)))
             }
+
+            Button {
+                showDatePicker = true
+            } label: {
+                Image(systemName: "calendar")
+                    .font(.caption.weight(.semibold))
+                    .padding(8)
+                    .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 6))
+            }
+            .accessibilityLabel("Pick a date")
         }
         .animation(.easeInOut(duration: 0.2), value: historyVM.timeRange)
+        .sheet(isPresented: $showDatePicker) {
+            DatePickerSheet(
+                selectedDate: historyVM.selectedDate,
+                dateRange: historyVM.dataDateRange
+            ) { date in
+                historyVM.jumpToDate(date)
+            }
+        }
     }
 
     @ViewBuilder
@@ -335,5 +355,51 @@ struct HistoryView: View {
         // + VStack spacing (6*3=18) + vertical padding (4+8=12) + bottom bar (~52) = ~178
         let reserved: CGFloat = 180
         return max(containerHeight - reserved, 250)
+    }
+}
+
+// MARK: - Date Picker Sheet
+
+private struct DatePickerSheet: View {
+
+    let dateRange: ClosedRange<Date>
+    let onSelect: (Date) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var pickedDate: Date
+    @State private var ready = false
+
+    init(selectedDate: Date, dateRange: ClosedRange<Date>, onSelect: @escaping (Date) -> Void) {
+        self.dateRange = dateRange
+        self.onSelect = onSelect
+        _pickedDate = State(initialValue: selectedDate)
+    }
+
+    var body: some View {
+        NavigationStack {
+            DatePicker(
+                "Select date",
+                selection: $pickedDate,
+                in: dateRange,
+                displayedComponents: .date
+            )
+            .datePickerStyle(.graphical)
+            .padding(.horizontal)
+            .navigationTitle("Jump to Date")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+        .onAppear { ready = true }
+        .onChange(of: pickedDate) { _, newDate in
+            guard ready else { return }
+            onSelect(newDate)
+            dismiss()
+        }
+        .presentationDetents([.height(460)])
     }
 }
