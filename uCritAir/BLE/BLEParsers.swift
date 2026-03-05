@@ -40,7 +40,8 @@ enum BLEParsers {
     }
 
     static func rtcToUnix(_ rtcTime: UInt64) -> Int {
-        Int(rtcTime) - Int(BLEConstants.rtcEpochOffset)
+        guard rtcTime > BLEConstants.rtcEpochOffset else { return 0 }
+        return Int(clamping: rtcTime - BLEConstants.rtcEpochOffset)
     }
 
     static func parseLogCell(_ data: Data) throws -> ParsedLogCell {

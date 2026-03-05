@@ -24,8 +24,7 @@ final class BLEManager: NSObject, @unchecked Sendable {
 
     private(set) var connectedPeripheral: CBPeripheral?
 
-    // swiftlint:disable:next implicitly_unwrapped_optional
-    private var centralManager: CBCentralManager!
+    private let centralManager: CBCentralManager
 
     private var customService: CBService?
 
@@ -59,11 +58,7 @@ final class BLEManager: NSObject, @unchecked Sendable {
 
     private var pendingWriteCallbacks: [CBUUID: (Error?) -> Void] = [:]
 
-    var onSensorUpdate: ((PartialSensorUpdate) -> Void)?
-
     private var sensorUpdateObservers: [UUID: (PartialSensorUpdate) -> Void] = [:]
-
-    var onConnectionStateChanged: ((ConnectionState) -> Void)?
 
     private var connectionStateObservers: [UUID: (ConnectionState) -> Void] = [:]
 
@@ -74,8 +69,13 @@ final class BLEManager: NSObject, @unchecked Sendable {
     private let logger = Logger(subsystem: "com.ucritter.ucritair", category: "BLE")
 
     override init() {
+        centralManager = CBCentralManager(delegate: nil, queue: .main)
         super.init()
-        centralManager = CBCentralManager(delegate: self, queue: .main)
+        centralManager.delegate = self
+    }
+
+    deinit {
+        pollTimer?.invalidate()
     }
 
     var connectedDeviceId: String? {
@@ -235,25 +235,6 @@ final class BLEManager: NSObject, @unchecked Sendable {
         }
     }
 
-    func readESSCharacteristic(_ uuid: CBUUID) async throws -> Data {
-        guard let char = characteristicCache[uuid] else {
-            throw BLEError.characteristicNotFound(uuid)
-        }
-        guard let peripheral = connectedPeripheral else {
-            throw BLEError.notConnected
-        }
-
-        return try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.main.async {
-                if self.pendingReads[uuid] != nil {
-                    continuation.resume(throwing: BLEError.operationInProgress)
-                    return
-                }
-                self.pendingReads[uuid] = continuation
-                peripheral.readValue(for: char)
-            }
-        }
-    }
 
     private func setState(_ state: ConnectionState) {
         connectionState = state
@@ -261,14 +242,12 @@ final class BLEManager: NSObject, @unchecked Sendable {
     }
 
     private func emitConnectionStateChange(_ state: ConnectionState) {
-        onConnectionStateChanged?(state)
         for observer in Array(connectionStateObservers.values) {
             observer(state)
         }
     }
 
     private func emitSensorUpdate(_ update: PartialSensorUpdate) {
-        onSensorUpdate?(update)
         for observer in Array(sensorUpdateObservers.values) {
             observer(update)
         }

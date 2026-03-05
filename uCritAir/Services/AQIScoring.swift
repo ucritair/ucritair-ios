@@ -72,7 +72,8 @@ enum AQIScoring {
         let tempMult = 1.0 + max(0, scores.temp - 1.0) * 0.1
         let rhMult = 1.0 + max(0, scores.rh - 1.0) * 0.1
 
-        let finalScore = min(5.0, (baseScore * tempMult * rhMult * 100).rounded() / 100)
+        let raw = baseScore * tempMult * rhMult
+        let finalScore = raw.isFinite ? min(5.0, (raw * 100).rounded() / 100) : 5.0
         let goodness = Int(((5.0 - finalScore) / 5.0 * 100).rounded())
 
         return AQScoreResult(

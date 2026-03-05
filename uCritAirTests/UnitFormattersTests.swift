@@ -7,32 +7,25 @@ struct UnitFormattersTests {
 
     @Test("nil inputs format as placeholders")
     func nilInputs() {
-        #expect(UnitFormatters.fmtTemp(nil) == "--")
-        #expect(UnitFormatters.fmtHumidity(nil) == "--")
-        #expect(UnitFormatters.fmtCO2(nil) == "--")
-        #expect(UnitFormatters.fmtPM(nil) == "--")
-        #expect(UnitFormatters.fmtPressure(nil) == "--")
+        #expect(UnitFormatters.fmtTempValue(nil) == "--")
+        #expect(UnitFormatters.fmtHumidityValue(nil) == "--")
+        #expect(UnitFormatters.fmtCO2Value(nil) == "--")
+        #expect(UnitFormatters.fmtPMValue(nil) == "--")
+        #expect(UnitFormatters.fmtPressureValue(nil) == "--")
         #expect(UnitFormatters.fmtIndex(nil) == "--")
     }
 
-    @Test("temperature conversion and unit labeling")
+    @Test("temperature conversion")
     func temperatureFormatting() {
-        #expect(UnitFormatters.fmtTemp(25.0) == "25.0 °C")
-        #expect(UnitFormatters.fmtTemp(25.0, useFahrenheit: true) == "77.0 °F")
+        #expect(UnitFormatters.fmtTempValue(25.0) == "25.0")
         #expect(UnitFormatters.fmtTempValue(25.0, useFahrenheit: true) == "77.0")
-        #expect(UnitFormatters.tempUnit(useFahrenheit: false) == "°C")
-        #expect(UnitFormatters.tempUnit(useFahrenheit: true) == "°F")
     }
 
     @Test("basic numeric formatters")
     func basicNumericFormatting() {
-        #expect(UnitFormatters.fmtHumidity(45.12) == "45.1%")
         #expect(UnitFormatters.fmtHumidityValue(45.12) == "45.1")
-        #expect(UnitFormatters.fmtCO2(412.8) == "413 ppm")
         #expect(UnitFormatters.fmtCO2Value(412.8) == "413")
-        #expect(UnitFormatters.fmtPM(12.34) == "12.3 µg/m³")
         #expect(UnitFormatters.fmtPMValue(12.34) == "12.3")
-        #expect(UnitFormatters.fmtPressure(1013.26) == "1013.3 hPa")
         #expect(UnitFormatters.fmtPressureValue(1013.26) == "1013.3")
         #expect(UnitFormatters.fmtIndex(98.7) == "99")
     }

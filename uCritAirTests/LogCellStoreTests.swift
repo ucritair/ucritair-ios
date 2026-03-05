@@ -6,8 +6,8 @@ import Testing
 struct LogCellStoreTests {
 
     @MainActor
-    @Test("save/fetch/count/max are scoped per device")
-    func saveFetchCountMax() throws {
+    @Test("save/fetch/max are scoped per device")
+    func saveFetchMax() throws {
         let context = try makeContext()
 
         let deviceACells = [
@@ -23,8 +23,11 @@ struct LogCellStoreTests {
 
         let fetchedA = try LogCellStore.fetchAllCells(deviceId: "A", context: context)
         #expect(fetchedA.map(\.cellNumber) == [1, 3])
-        #expect(try LogCellStore.cachedCellCount(deviceId: "A", context: context) == 2)
-        #expect(try LogCellStore.cachedCellCount(deviceId: "B", context: context) == 1)
+        #expect(fetchedA.count == 2)
+
+        let fetchedB = try LogCellStore.fetchAllCells(deviceId: "B", context: context)
+        #expect(fetchedB.count == 1)
+
         #expect(try LogCellStore.maxCachedCellNumber(deviceId: "A", context: context) == 3)
         #expect(try LogCellStore.maxCachedCellNumber(deviceId: "MISSING", context: context) == -1)
     }

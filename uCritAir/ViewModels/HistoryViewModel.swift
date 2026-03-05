@@ -63,8 +63,6 @@ final class HistoryViewModel {
 
     var selectedSensor: String? = "co2"
 
-    var visibleSensors: Set<String> = ["co2", "pm2_5", "temperature"]
-
     var timeRange: TimeRange = .oneDay
 
     var dayOffset = 0
@@ -84,6 +82,13 @@ final class HistoryViewModel {
     private var csvCacheKeySnapshot: Int?
 
     private let logger = Logger(subsystem: "com.ucritter.ucritair", category: "History")
+
+    private static let dayLabelFormatter: DateFormatter = {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "MMM d"
+        fmt.timeZone = .gmt
+        return fmt
+    }()
 
     deinit {
         autoPollTimer?.invalidate()
@@ -220,10 +225,7 @@ final class HistoryViewModel {
         if dayOffset == 0 { return "Today" }
         if dayOffset == -1 { return "Yesterday" }
         let (start, _) = calendarDayBounds(for: dayOffset)
-        let fmt = DateFormatter()
-        fmt.dateFormat = "MMM d"
-        fmt.timeZone = .gmt
-        return fmt.string(from: start)
+        return Self.dayLabelFormatter.string(from: start)
     }
 
     var canGoBack: Bool {
@@ -455,29 +457,15 @@ final class HistoryViewModel {
     private func csvCacheKey(for cells: [LogCellEntity]) -> Int {
         var hasher = Hasher()
         hasher.combine(cells.count)
-        for cell in cells {
-            hasher.combine(cell.cellNumber)
-            hasher.combine(cell.timestamp)
-            hasher.combine(cell.flags)
-            hasher.combine(cell.temperature.bitPattern)
-            hasher.combine(cell.pressure.bitPattern)
-            hasher.combine(cell.humidity.bitPattern)
-            hasher.combine(cell.co2)
-            hasher.combine(cell.co2Uncomp)
-            hasher.combine(cell.pm1_0.bitPattern)
-            hasher.combine(cell.pm2_5.bitPattern)
-            hasher.combine(cell.pm4_0.bitPattern)
-            hasher.combine(cell.pm10.bitPattern)
-            hasher.combine(cell.pn0_5.bitPattern)
-            hasher.combine(cell.pn1_0.bitPattern)
-            hasher.combine(cell.pn2_5.bitPattern)
-            hasher.combine(cell.pn4_0.bitPattern)
-            hasher.combine(cell.pn10.bitPattern)
-            hasher.combine(cell.voc)
-            hasher.combine(cell.nox)
-            hasher.combine(cell.stroopMeanCong.bitPattern)
-            hasher.combine(cell.stroopMeanIncong.bitPattern)
-            hasher.combine(cell.stroopThroughput)
+        if let first = cells.first {
+            hasher.combine(first.cellNumber)
+            hasher.combine(first.timestamp)
+            hasher.combine(first.temperature.bitPattern)
+        }
+        if let last = cells.last {
+            hasher.combine(last.cellNumber)
+            hasher.combine(last.timestamp)
+            hasher.combine(last.temperature.bitPattern)
         }
         return hasher.finalize()
     }
@@ -504,13 +492,6 @@ final class HistoryViewModel {
         await downloadNewCellsQuiet()
     }
 
-    func toggleSensor(_ key: String) {
-        if visibleSensors.contains(key) {
-            visibleSensors.remove(key)
-        } else {
-            visibleSensors.insert(key)
-        }
-    }
 
     func goBack() {
         dayOffset -= 1

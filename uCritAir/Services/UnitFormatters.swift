@@ -2,15 +2,6 @@ import Foundation
 
 enum UnitFormatters {
 
-    static func fmtTemp(_ value: Double?, useFahrenheit: Bool = false) -> String {
-        guard let v = value else { return "--" }
-        if useFahrenheit {
-            let f = v * 9.0 / 5.0 + 32.0
-            return String(format: "%.1f °F", f)
-        }
-        return String(format: "%.1f °C", v)
-    }
-
     static func fmtTempValue(_ value: Double?, useFahrenheit: Bool = false) -> String {
         guard let v = value else { return "--" }
         if useFahrenheit {
@@ -20,19 +11,9 @@ enum UnitFormatters {
         return String(format: "%.1f", v)
     }
 
-    static func fmtHumidity(_ value: Double?) -> String {
-        guard let v = value else { return "--" }
-        return String(format: "%.1f%%", v)
-    }
-
     static func fmtHumidityValue(_ value: Double?) -> String {
         guard let v = value else { return "--" }
         return String(format: "%.1f", v)
-    }
-
-    static func fmtCO2(_ value: Double?) -> String {
-        guard let v = value else { return "--" }
-        return String(format: "%.0f ppm", v)
     }
 
     static func fmtCO2Value(_ value: Double?) -> String {
@@ -40,19 +21,9 @@ enum UnitFormatters {
         return String(format: "%.0f", v)
     }
 
-    static func fmtPM(_ value: Double?) -> String {
-        guard let v = value else { return "--" }
-        return String(format: "%.1f µg/m³", v)
-    }
-
     static func fmtPMValue(_ value: Double?) -> String {
         guard let v = value else { return "--" }
         return String(format: "%.1f", v)
-    }
-
-    static func fmtPressure(_ value: Double?) -> String {
-        guard let v = value else { return "--" }
-        return String(format: "%.1f hPa", v)
     }
 
     static func fmtPressureValue(_ value: Double?) -> String {
@@ -63,10 +34,6 @@ enum UnitFormatters {
     static func fmtIndex(_ value: Double?) -> String {
         guard let v = value else { return "--" }
         return String(format: "%.0f", v)
-    }
-
-    static func tempUnit(useFahrenheit: Bool = false) -> String {
-        useFahrenheit ? "°F" : "°C"
     }
 
     private static let dateTimeFormatter: DateFormatter = {

@@ -281,9 +281,10 @@ struct SensorChartView: View {
 
                                 let plotWidth = geometry[plotFrame].width
                                 guard plotWidth > 0 else { return }
+                                guard let panStart = panStartDate else { return }
                                 let timePerPixel = effectiveDomainLength / plotWidth
                                 let timeDelta = -Double(drag.translation.width) * timePerPixel
-                                visibleStart = panStartDate!.addingTimeInterval(timeDelta)
+                                visibleStart = panStart.addingTimeInterval(timeDelta)
                                 clampVisibleRange()
                             }
                             .onEnded { _ in
@@ -355,10 +356,6 @@ struct SensorChartView: View {
         }
     }
 
-    private var dataSpanDays: Int {
-        guard let first = points.first, let last = points.last else { return 0 }
-        return (last.timestamp - first.timestamp) / 86400
-    }
 
     private func annotationDateLabel(_ date: Date) -> String {
         let spanDays = effectiveDomainLength / 86400

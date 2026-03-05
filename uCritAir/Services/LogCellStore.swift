@@ -56,14 +56,6 @@ enum LogCellStore {
     }
 
     @MainActor
-    static func cachedCellCount(deviceId: String, context: ModelContext) throws -> Int {
-        let descriptor = FetchDescriptor<LogCellEntity>(
-            predicate: #Predicate { $0.deviceId == deviceId }
-        )
-        return try context.fetchCount(descriptor)
-    }
-
-    @MainActor
     static func clearAllCells(deviceId: String, context: ModelContext) throws {
         let cells = try fetchAllCells(deviceId: deviceId, context: context)
         for cell in cells {

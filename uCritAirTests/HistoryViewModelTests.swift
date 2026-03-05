@@ -87,15 +87,9 @@ struct HistoryViewModelTests {
         #expect(stats.max == 600)
     }
 
-    @Test("toggleSensor and time-range navigation mutate state")
-    func testToggleAndNavigation() {
+    @Test("time-range navigation mutates state")
+    func testNavigation() {
         let vm = HistoryViewModel()
-
-        #expect(vm.visibleSensors.contains("co2"))
-        vm.toggleSensor("co2")
-        #expect(!vm.visibleSensors.contains("co2"))
-        vm.toggleSensor("co2")
-        #expect(vm.visibleSensors.contains("co2"))
 
         vm.goBack()
         #expect(vm.dayOffset == -1)

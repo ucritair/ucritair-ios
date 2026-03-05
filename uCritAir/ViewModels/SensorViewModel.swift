@@ -19,6 +19,13 @@ final class SensorViewModel {
 
     private var configuredBLEManagerID: ObjectIdentifier?
 
+    deinit {
+        if let manager = bleManager {
+            if let token = sensorObserverToken { manager.removeSensorUpdateObserver(token) }
+            if let token = connectionObserverToken { manager.removeConnectionStateObserver(token) }
+        }
+    }
+
     @MainActor
     func configure(bleManager: BLEManager) {
         let managerID = ObjectIdentifier(bleManager)

@@ -53,6 +53,12 @@ final class DeviceViewModel {
 
     private let logger = Logger(subsystem: "com.ucritter.ucritair", category: "Device")
 
+    deinit {
+        if let manager = bleManager, let token = connectionObserverToken {
+            manager.removeConnectionStateObserver(token)
+        }
+    }
+
     var activeDeviceId: String? {
         bleManager?.connectedDeviceId
     }

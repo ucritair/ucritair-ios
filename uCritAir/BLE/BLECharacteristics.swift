@@ -73,12 +73,6 @@ enum BLECharacteristics {
         return data.readUInt32LE(at: 0)
     }
 
-    static func writeBonus(_ value: UInt32, using manager: BLEManager) async throws {
-        var data = Data(count: 4)
-        data.writeUInt32LE(value, at: 0)
-        try await manager.writeCharacteristic(BLEConstants.charBonus, data: data)
-    }
-
     static func readPetName(using manager: BLEManager) async throws -> String {
         let data = try await manager.readCharacteristic(BLEConstants.charPetName)
         return String(data: data, encoding: .utf8)?
