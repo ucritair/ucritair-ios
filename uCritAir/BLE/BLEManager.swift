@@ -156,7 +156,7 @@ final class BLEManager: NSObject, @unchecked Sendable {
         setState(.scanning)
 
         centralManager.scanForPeripherals(
-            withServices: [BLEConstants.customServiceUUID],
+            withServices: nil,
             options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
         )
     }
@@ -501,6 +501,13 @@ extension BLEManager: CBCentralManagerDelegate {
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
                          advertisementData: [String: Any], rssi RSSI: NSNumber) {
+        guard BLEDiscovery.isLikelyUCritDevice(
+            peripheralName: peripheral.name,
+            advertisementData: advertisementData
+        ) else {
+            return
+        }
+
         if !discoveredPeripherals.contains(where: { $0.identifier == peripheral.identifier }) {
             discoveredPeripherals.append(peripheral)
             logger.info("Discovered: \(peripheral.name ?? "Unknown") (\(peripheral.identifier))")

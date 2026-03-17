@@ -34,6 +34,8 @@ enum BLEConstants {
 
     static let essServiceUUID   = CBUUID(string: "181A")
 
+    static let discoveryServiceDataUUID = CBUUID(string: "FCD2")
+
     static let essTemperature   = CBUUID(string: "2A6E")
 
     static let essHumidity      = CBUUID(string: "2A6F")
@@ -79,4 +81,43 @@ enum BLEConstants {
     static let allESSCharacteristicUUIDs: [CBUUID] = essNotifyCharacteristicUUIDs + essReadCharacteristicUUIDs
 
     static let requiredESSCharacteristicUUIDs: [CBUUID] = allESSCharacteristicUUIDs
+}
+
+enum BLEDiscovery {
+
+    static func isLikelyUCritDevice(
+        peripheralName: String?,
+        advertisementData: [String: Any]
+    ) -> Bool {
+        if matchesUCritName(advertisementData[CBAdvertisementDataLocalNameKey] as? String) {
+            return true
+        }
+
+        if matchesUCritName(peripheralName) {
+            return true
+        }
+
+        if let serviceUUIDs = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID],
+           serviceUUIDs.contains(BLEConstants.customServiceUUID) {
+            return true
+        }
+
+        if let serviceData = advertisementData[CBAdvertisementDataServiceDataKey] as? [CBUUID: Data],
+           serviceData.keys.contains(BLEConstants.discoveryServiceDataUUID) {
+            return true
+        }
+
+        return false
+    }
+
+    private static func matchesUCritName(_ name: String?) -> Bool {
+        guard let normalized = name?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased(),
+            !normalized.isEmpty else {
+            return false
+        }
+
+        return normalized.hasPrefix("ucrit")
+    }
 }

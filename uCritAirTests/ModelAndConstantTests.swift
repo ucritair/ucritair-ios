@@ -1,4 +1,5 @@
 import Foundation
+import CoreBluetooth
 import Testing
 @testable import uCritAir
 
@@ -37,6 +38,54 @@ struct ModelAndConstantTests {
         )
         #expect(def.id == BLEConstants.essCO2.uuidString)
         #expect(def.access == .read)
+    }
+
+    @Test("discovery matcher accepts uCrit local name")
+    func discoveryMatcherAcceptsUCritLocalName() {
+        let advertisementData: [String: Any] = [
+            CBAdvertisementDataLocalNameKey: "uCrit-SA153Q"
+        ]
+
+        #expect(BLEDiscovery.isLikelyUCritDevice(
+            peripheralName: nil,
+            advertisementData: advertisementData
+        ))
+    }
+
+    @Test("discovery matcher accepts legacy custom service advertisements")
+    func discoveryMatcherAcceptsLegacyCustomService() {
+        let advertisementData: [String: Any] = [
+            CBAdvertisementDataServiceUUIDsKey: [BLEConstants.customServiceUUID]
+        ]
+
+        #expect(BLEDiscovery.isLikelyUCritDevice(
+            peripheralName: nil,
+            advertisementData: advertisementData
+        ))
+    }
+
+    @Test("discovery matcher accepts new service-data marker")
+    func discoveryMatcherAcceptsServiceDataMarker() {
+        let advertisementData: [String: Any] = [
+            CBAdvertisementDataServiceDataKey: [BLEConstants.discoveryServiceDataUUID: Data([0x01, 0x02])]
+        ]
+
+        #expect(BLEDiscovery.isLikelyUCritDevice(
+            peripheralName: nil,
+            advertisementData: advertisementData
+        ))
+    }
+
+    @Test("discovery matcher rejects unrelated ESS devices")
+    func discoveryMatcherRejectsUnrelatedESSDevices() {
+        let advertisementData: [String: Any] = [
+            CBAdvertisementDataServiceUUIDsKey: [BLEConstants.essServiceUUID]
+        ]
+
+        #expect(!BLEDiscovery.isLikelyUCritDevice(
+            peripheralName: "Weather Station",
+            advertisementData: advertisementData
+        ))
     }
 
     @Test("device profile defaults and custom values")
