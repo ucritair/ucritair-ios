@@ -2,6 +2,10 @@ import SwiftUI
 
 struct AboutView: View {
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    @ScaledMetric(relativeTo: .title2) private var iconSize: CGFloat = 60
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
     }
@@ -13,10 +17,15 @@ struct AboutView: View {
     var body: some View {
         List {
             Section {
-                HStack(spacing: 14) {
+                AdaptiveStack(
+                    vertical: dynamicTypeSize.usesAccessibilityLayout,
+                    verticalAlignment: .leading,
+                    horizontalAlignment: .center,
+                    spacing: 14
+                ) {
                     Image("AppIcon")
                         .resizable()
-                        .frame(width: 60, height: 60)
+                        .frame(width: iconSize, height: iconSize)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     VStack(alignment: .leading, spacing: 2) {
                         Text("uCritAir")
@@ -24,6 +33,7 @@ struct AboutView: View {
                         Text("Version \(appVersion) (\(buildNumber))")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .padding(.vertical, 4)
@@ -52,6 +62,7 @@ struct AboutView: View {
                 }
             }
         }
+        .appTabBarScrollContentClearance()
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
     }

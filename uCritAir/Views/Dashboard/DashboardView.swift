@@ -12,14 +12,18 @@ struct DashboardView: View {
 
     @Environment(HistoryViewModel.self) private var historyVM
 
-    private let columns = [
-        GridItem(.adaptive(minimum: 150), spacing: 12),
-    ]
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    @ScaledMetric(relativeTo: .body) private var sensorCardMinimumWidth = 150
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 StatusBanner()
+
+                if dynamicTypeSize.usesAccessibilityLayout {
+                    ConnectedDeviceHeader()
+                }
 
                 if bleManager.connectionState == .disconnected {
                     disconnectedView
@@ -29,7 +33,14 @@ struct DashboardView: View {
             }
             .padding()
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Color.clear
+                .frame(height: AppChrome.customTabBarContentClearance)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .background(Color(.systemGroupedBackground))
+        .accessibilityIdentifier("dashboardScreen")
     }
 
     private var disconnectedView: some View {
@@ -84,8 +95,17 @@ struct DashboardView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(item.label): \(item.value) \(item.unit)")
+                    .accessibilityIdentifier("sensorCard_\(item.key)")
                 }
             }
+        }
+    }
+
+    private var columns: [GridItem] {
+        if dynamicTypeSize.usesAccessibilityLayout {
+            [GridItem(.flexible(), spacing: 12)]
+        } else {
+            [GridItem(.adaptive(minimum: sensorCardMinimumWidth), spacing: 12)]
         }
     }
 

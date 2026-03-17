@@ -6,14 +6,24 @@ struct AdvancedView: View {
 
     @Environment(DeviceViewModel.self) private var deviceVM
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         List {
+            if dynamicTypeSize.usesAccessibilityLayout && deviceVM.connectionState == .connected {
+                Section {
+                    ConnectedDeviceHeader()
+                }
+            }
+
             timeSyncSection
             bleInspectorSection
             cellInspectorSection
         }
+        .appTabBarScrollContentClearance()
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle("Advanced")
+        .accessibilityIdentifier("advancedScreen")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 ConnectButton()
@@ -33,58 +43,105 @@ struct AdvancedView: View {
 
     private var timeSyncSection: some View {
         Section("Time Sync") {
-            HStack {
-                Button("Read Time") {
-                    Task {
-                        do {
-                            guard let manager = deviceVM.bleManager else { return }
-                            let t = try await BLECharacteristics.readTime(using: manager)
-                            readTimeResult = "\(t) — \(UnitFormatters.fmtDateTime(t))"
-                            timeStatus = nil
-                        } catch {
-                            timeStatus = "Read failed: \(error.localizedDescription)"
-                        }
-                    }
+            ViewThatFits {
+                HStack {
+                    readTimeButton
+                    syncToHostButton
                 }
-                .buttonStyle(.bordered)
 
-                Button("Sync to Host") {
-                    Task {
-                        await deviceVM.syncTime()
-                        if let t = deviceVM.deviceTime {
-                            timeStatus = "Synced: \(UnitFormatters.fmtDateTime(t))"
-                        }
-                    }
+                VStack(alignment: .leading, spacing: 8) {
+                    readTimeButton
+                    syncToHostButton
                 }
-                .buttonStyle(.bordered)
             }
 
             if let result = readTimeResult {
-                LabeledContent("Device Time", value: result)
+                keyValueRow(title: "Device Time", value: result)
             }
 
-            HStack {
-                TextField("Unix timestamp", text: $customTimeText)
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(.roundedBorder)
-                Button("Set") {
-                    guard let value = UInt32(customTimeText) else {
-                        timeStatus = "Invalid timestamp"
-                        return
-                    }
-                    Task {
-                        await deviceVM.writeTime(value)
-                        timeStatus = "Set to: \(UnitFormatters.fmtDateTime(value))"
-                    }
+            ViewThatFits {
+                HStack {
+                    timeInputField
+                    setTimeButton
                 }
-                .buttonStyle(.bordered)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    timeInputField
+                    setTimeButton
+                }
             }
 
             if let status = timeStatus {
                 Text(status)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    private var readTimeButton: some View {
+        Button("Read Time") {
+            Task {
+                do {
+                    guard let manager = deviceVM.bleManager else { return }
+                    let t = try await BLECharacteristics.readTime(using: manager)
+                    readTimeResult = "\(t) — \(UnitFormatters.fmtDateTime(t))"
+                    timeStatus = nil
+                } catch {
+                    timeStatus = "Read failed: \(error.localizedDescription)"
+                }
+            }
+        }
+        .buttonStyle(.bordered)
+        .minimumAccessibleTapTarget()
+    }
+
+    private var syncToHostButton: some View {
+        Button("Sync to Host") {
+            Task {
+                await deviceVM.syncTime()
+                if let t = deviceVM.deviceTime {
+                    timeStatus = "Synced: \(UnitFormatters.fmtDateTime(t))"
+                }
+            }
+        }
+        .buttonStyle(.bordered)
+        .minimumAccessibleTapTarget()
+    }
+
+    private var timeInputField: some View {
+        TextField("Unix timestamp", text: $customTimeText)
+            .keyboardType(.numberPad)
+            .textFieldStyle(.roundedBorder)
+    }
+
+    private var setTimeButton: some View {
+        Button("Set") {
+            guard let value = UInt32(customTimeText) else {
+                timeStatus = "Invalid timestamp"
+                return
+            }
+            Task {
+                await deviceVM.writeTime(value)
+                timeStatus = "Set to: \(UnitFormatters.fmtDateTime(value))"
+            }
+        }
+        .buttonStyle(.bordered)
+        .minimumAccessibleTapTarget()
+    }
+
+    @ViewBuilder
+    private func keyValueRow(title: String, value: String) -> some View {
+        if dynamicTypeSize.usesAccessibilityLayout {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(value)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            LabeledContent(title, value: value)
         }
     }
 
@@ -120,24 +177,21 @@ struct AdvancedView: View {
 
                 if selectedCharIndex < KnownCharacteristics.all.count {
                     let def = KnownCharacteristics.all[selectedCharIndex]
-                    LabeledContent("Format", value: def.format)
-                    LabeledContent("UUID", value: def.uuid.uuidString)
-                        .font(.caption2)
+                    keyValueRow(title: "Format", value: def.format)
+                    keyValueRow(title: "UUID", value: def.uuid.uuidString)
                 }
             }
 
-            HStack {
-                Button("Read") {
-                    Task { await performRead() }
+            ViewThatFits {
+                HStack {
+                    readButton
+                    writeButton
                 }
-                .buttonStyle(.bordered)
-                .disabled(resolvedAccess == .write)
 
-                Button("Write") {
-                    Task { await performWrite() }
+                VStack(alignment: .leading, spacing: 8) {
+                    readButton
+                    writeButton
                 }
-                .buttonStyle(.bordered)
-                .disabled(resolvedAccess == .read || writeHexText.isEmpty)
             }
 
             if resolvedAccess != .read {
@@ -168,8 +222,27 @@ struct AdvancedView: View {
                 Text(status)
                     .font(.caption)
                     .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    private var readButton: some View {
+        Button("Read") {
+            Task { await performRead() }
+        }
+        .buttonStyle(.bordered)
+        .disabled(resolvedAccess == .write)
+        .minimumAccessibleTapTarget()
+    }
+
+    private var writeButton: some View {
+        Button("Write") {
+            Task { await performWrite() }
+        }
+        .buttonStyle(.bordered)
+        .disabled(resolvedAccess == .read || writeHexText.isEmpty)
+        .minimumAccessibleTapTarget()
     }
 
     private var resolvedUUID: CBUUID? {
@@ -312,6 +385,7 @@ struct AdvancedView: View {
                     Text("Device has \(count) cells (0–\(count - 1))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text("Device has 0 cells")
                         .font(.caption)
@@ -319,41 +393,23 @@ struct AdvancedView: View {
                 }
             }
 
-            HStack {
-                TextField("Cell #", text: $cellIndexText)
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 100)
-
-                Button("Read") {
-                    guard let index = UInt32(cellIndexText) else {
-                        cellError = "Invalid cell number"
-                        return
-                    }
-                    if let count = deviceVM.cellCount, count == 0 || index >= count {
-                        cellError = count == 0
-                            ? "Device has no cells"
-                            : "Cell index out of range (0–\(count - 1))"
-                        return
-                    }
-                    cellError = nil
-                    cellResult = nil
-                    Task {
-                        do {
-                            let cell = try await deviceVM.readLogCell(at: index)
-                            cellResult = formatCell(cell)
-                        } catch {
-                            cellError = "Read failed: \(error.localizedDescription)"
-                        }
-                    }
+            ViewThatFits {
+                HStack {
+                    cellIndexField
+                    readCellButton
                 }
-                .buttonStyle(.bordered)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    cellIndexField
+                    readCellButton
+                }
             }
 
             if let error = cellError {
                 Text(error)
                     .font(.caption)
                     .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if let result = cellResult {
@@ -362,6 +418,39 @@ struct AdvancedView: View {
                     .textSelection(.enabled)
             }
         }
+    }
+
+    private var cellIndexField: some View {
+        TextField("Cell #", text: $cellIndexText)
+            .keyboardType(.numberPad)
+            .textFieldStyle(.roundedBorder)
+    }
+
+    private var readCellButton: some View {
+        Button("Read") {
+            guard let index = UInt32(cellIndexText) else {
+                cellError = "Invalid cell number"
+                return
+            }
+            if let count = deviceVM.cellCount, count == 0 || index >= count {
+                cellError = count == 0
+                    ? "Device has no cells"
+                    : "Cell index out of range (0–\(count - 1))"
+                return
+            }
+            cellError = nil
+            cellResult = nil
+            Task {
+                do {
+                    let cell = try await deviceVM.readLogCell(at: index)
+                    cellResult = formatCell(cell)
+                } catch {
+                    cellError = "Read failed: \(error.localizedDescription)"
+                }
+            }
+        }
+        .buttonStyle(.bordered)
+        .minimumAccessibleTapTarget()
     }
 
     private func formatCell(_ cell: ParsedLogCell) -> String {

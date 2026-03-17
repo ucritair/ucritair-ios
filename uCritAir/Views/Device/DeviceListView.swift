@@ -10,6 +10,8 @@ struct DeviceListView: View {
 
     @Environment(\.modelContext) private var modelContext
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @State private var showDeleteConfirmation = false
 
     @State private var deviceToDelete: DeviceProfile?
@@ -29,6 +31,7 @@ struct DeviceListView: View {
             }
         }
         .navigationTitle("Devices")
+        .accessibilityIdentifier("devicesScreen")
         .navigationDestination(isPresented: $showSettings) {
             DeviceView()
         }
@@ -106,6 +109,12 @@ struct DeviceListView: View {
 
     private var deviceList: some View {
         List {
+            if dynamicTypeSize.usesAccessibilityLayout && deviceVM.connectionState == .connected {
+                Section {
+                    ConnectedDeviceHeader()
+                }
+            }
+
             ForEach(deviceVM.knownDevices, id: \.deviceId) { profile in
                 let isConnected = profile.deviceId == deviceVM.activeDeviceId
                 let aqResult: AQScoreResult? = isConnected && sensorVM.current.hasAnyValue
@@ -167,5 +176,6 @@ struct DeviceListView: View {
                 }
             }
         }
+        .appTabBarScrollContentClearance()
     }
 }

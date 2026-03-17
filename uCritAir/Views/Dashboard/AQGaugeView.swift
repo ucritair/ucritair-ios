@@ -4,9 +4,15 @@ struct AQGaugeView: View {
 
     @Environment(SensorViewModel.self) private var sensorVM
 
-    private let gaugeSize: CGFloat = 180
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    private let lineWidth: CGFloat = 12
+    @ScaledMetric(relativeTo: .title2) private var gaugeSize: CGFloat = 180
+
+    @ScaledMetric(relativeTo: .title3) private var lineWidth: CGFloat = 12
+
+    @ScaledMetric(relativeTo: .largeTitle) private var gradeFontSize: CGFloat = 48
+
+    @ScaledMetric(relativeTo: .title3) private var placeholderFontSize: CGFloat = 16
 
     private let startAngle = Angle.degrees(135)
 
@@ -15,39 +21,53 @@ struct AQGaugeView: View {
     var body: some View {
         let result = AQIScoring.computeAQScore(sensorVM.current)
         let hasData = sensorVM.current.hasAnyValue
+        let effectiveGaugeSize = dynamicTypeSize.usesAccessibilityLayout ? gaugeSize * 0.82 : gaugeSize
 
-        VStack(spacing: 8) {
+        VStack(spacing: dynamicTypeSize.usesAccessibilityLayout ? 14 : 8) {
             ZStack {
-                arcPath
+                arcPath(size: effectiveGaugeSize)
                     .stroke(Color.gray.opacity(0.2), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
 
                 if hasData {
-                    arcPath
+                    arcPath(size: effectiveGaugeSize)
                         .trim(from: 0, to: CGFloat(result.goodness) / 100.0)
                         .stroke(result.color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 }
 
-                VStack(spacing: 2) {
+                VStack(spacing: dynamicTypeSize.usesAccessibilityLayout ? 4 : 2) {
                     Text(hasData ? result.grade : "--")
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .font(.system(size: hasData ? gradeFontSize : placeholderFontSize, weight: .bold, design: .rounded))
                         .foregroundStyle(hasData ? result.color : .secondary)
 
-                    Text(hasData ? "\(result.goodness)%" : "")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
+                    if hasData && !dynamicTypeSize.usesAccessibilityLayout {
+                        Text("\(result.goodness)%")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
-            .frame(width: gaugeSize, height: gaugeSize)
+            .frame(width: effectiveGaugeSize, height: effectiveGaugeSize)
 
             if hasData {
-                Text(result.label)
-                    .font(.headline)
-                    .foregroundStyle(result.color)
+                VStack(spacing: 4) {
+                    if dynamicTypeSize.usesAccessibilityLayout {
+                        Text("\(result.goodness)%")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Text(result.label)
+                        .font(.headline)
+                        .foregroundStyle(result.color)
+                        .multilineTextAlignment(.center)
+                }
             } else {
                 Text("Waiting for data...")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
         }
         .frame(maxWidth: .infinity)
@@ -58,11 +78,11 @@ struct AQGaugeView: View {
             : "Air quality: waiting for data")
     }
 
-    private var arcPath: Path {
+    private func arcPath(size: CGFloat) -> Path {
         Path { path in
             path.addArc(
-                center: CGPoint(x: gaugeSize / 2, y: gaugeSize / 2),
-                radius: (gaugeSize - lineWidth) / 2,
+                center: CGPoint(x: size / 2, y: size / 2),
+                radius: (size - lineWidth) / 2,
                 startAngle: startAngle,
                 endAngle: endAngle,
                 clockwise: false

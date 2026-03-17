@@ -7,76 +7,108 @@ struct SensorCardView: View {
 
     @Environment(SensorViewModel.self) private var sensorVM
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    @ScaledMetric(relativeTo: .caption) private var sparklineHeight = 24
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(item.label)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
+        VStack(alignment: .leading, spacing: dynamicTypeSize.usesAccessibilityLayout ? 12 : 8) {
+            headerRow
+            valueRow
+            statusRow
 
-                Spacer()
+            if !dynamicTypeSize.usesAccessibilityLayout || sparklineData.count >= 2 {
+                HStack(alignment: .bottom, spacing: 8) {
+                    sparkline
+                        .frame(height: dynamicTypeSize.usesAccessibilityLayout ? sparklineHeight * 1.4 : sparklineHeight)
 
-                if let score = item.score {
-                    let grade = AQIScoring.sensorBadnessToGrade(score)
-                    let status = AQIScoring.sensorStatus(score)
-                    Text(grade)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundStyle(status.color)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(status.color.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.quaternary)
+                        .accessibilityHidden(true)
                 }
-            }
-
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(item.value)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .monospacedDigit()
-
-                Text(item.unit)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-
-            if let score = item.score {
-                let status = AQIScoring.sensorStatus(score)
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(status.color)
-                        .frame(width: 6, height: 6)
-                    Text(status.label)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(status.color)
-                }
-            } else {
-                HStack(spacing: 6) {
-                    Circle()
-                        .frame(width: 6, height: 6)
-                    Text(" ")
-                        .font(.caption2.weight(.medium))
-                }
-                .hidden()
-            }
-
-            HStack(alignment: .bottom) {
-                sparkline
-                    .frame(height: 24)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.quaternary)
-                    .padding(.bottom, 2)
-                    .accessibilityHidden(true)
             }
         }
         .padding(12)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var headerRow: some View {
+        Group {
+            if dynamicTypeSize.usesAccessibilityLayout {
+                VStack(alignment: .leading, spacing: 8) {
+                    sensorLabel
+                    gradeBadge
+                }
+            } else {
+                HStack {
+                    sensorLabel
+                    Spacer()
+                    gradeBadge
+                }
+            }
+        }
+    }
+
+    private var sensorLabel: some View {
+        Text(item.label)
+            .font(.caption)
+            .fontWeight(.medium)
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+    }
+
+    @ViewBuilder
+    private var gradeBadge: some View {
+        if let score = item.score {
+            let grade = AQIScoring.sensorBadnessToGrade(score)
+            let status = AQIScoring.sensorStatus(score)
+            Text(grade)
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundStyle(status.color)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(status.color.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+    }
+
+    private var valueRow: some View {
+        AdaptiveStack(
+            vertical: dynamicTypeSize.usesAccessibilityLayout,
+            verticalAlignment: .leading,
+            horizontalAlignment: .firstTextBaseline,
+            spacing: 4
+        ) {
+            Text(item.value)
+                .font(.title2)
+                .fontWeight(.bold)
+                .monospacedDigit()
+
+            if !item.unit.isEmpty {
+                Text(item.unit)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var statusRow: some View {
+        if let score = item.score {
+            let status = AQIScoring.sensorStatus(score)
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(status.color)
+                    .frame(width: 6, height: 6)
+                Text(status.label)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(status.color)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     @ViewBuilder

@@ -81,6 +81,8 @@ final class HistoryViewModel {
 
     private var csvCacheKeySnapshot: Int?
 
+    private var lastLoadedCacheDeviceId: String??
+
     private let logger = Logger(subsystem: "com.ucritter.ucritair", category: "History")
 
     private static let dayLabelFormatter: DateFormatter = {
@@ -311,9 +313,16 @@ final class HistoryViewModel {
     }
 
     @MainActor
-    func loadCachedCells() {
+    func loadCachedCells(force: Bool = false) {
         let deviceId = effectiveDeviceId
         logger.info("loadCachedCells: deviceId=\(deviceId ?? "nil") hasContext=\(self.modelContext != nil)")
+        if !force, lastLoadedCacheDeviceId == deviceId {
+            logger.info("loadCachedCells: skipping reload for device \(deviceId ?? "nil")")
+            return
+        }
+
+        lastLoadedCacheDeviceId = deviceId
+
         guard let ctx = modelContext, let deviceId else {
             logger.warning("loadCachedCells: skipping — missing context or deviceId")
             allCells = []
@@ -374,6 +383,7 @@ final class HistoryViewModel {
 
             allCells = try LogCellStore.fetchAllCells(deviceId: deviceId, context: ctx)
             cachedCount = allCells.count
+            lastLoadedCacheDeviceId = deviceId
             logger.info("downloadNewCells: fetchAllCells returned \(self.allCells.count) cells")
         } catch {
             self.error = "Download failed. Check that the device is nearby and try again."
@@ -419,6 +429,7 @@ final class HistoryViewModel {
             try LogCellStore.saveCells(newCells, deviceId: deviceId, context: ctx)
             allCells = try LogCellStore.fetchAllCells(deviceId: deviceId, context: ctx)
             cachedCount = allCells.count
+            lastLoadedCacheDeviceId = deviceId
             logger.info("downloadNewCellsQuiet: saved \(newCells.count) cells, fetched \(self.allCells.count)")
         } catch {
             logger.error("downloadNewCellsQuiet failed: \(error)")
@@ -432,6 +443,7 @@ final class HistoryViewModel {
             try LogCellStore.clearAllCells(deviceId: deviceId, context: ctx)
             allCells = []
             cachedCount = 0
+            lastLoadedCacheDeviceId = deviceId
         } catch {
             self.error = "Failed to clear cache. Try again."
         }

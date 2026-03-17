@@ -68,6 +68,10 @@ final class BLEManager: NSObject, @unchecked Sendable {
 
     private let logger = Logger(subsystem: "com.ucritter.ucritair", category: "BLE")
 
+#if DEBUG
+    private var mockConnectedDeviceID: String?
+#endif
+
     override init() {
         centralManager = CBCentralManager(delegate: nil, queue: .main)
         super.init()
@@ -79,7 +83,11 @@ final class BLEManager: NSObject, @unchecked Sendable {
     }
 
     var connectedDeviceId: String? {
+#if DEBUG
+        mockConnectedDeviceID ?? connectedPeripheral?.identifier.uuidString
+#else
         connectedPeripheral?.identifier.uuidString
+#endif
     }
 
     func whenBluetoothReady(_ callback: @escaping () -> Void) {
@@ -119,6 +127,12 @@ final class BLEManager: NSObject, @unchecked Sendable {
 
     func _testEmitSensorUpdate(_ update: PartialSensorUpdate) {
         emitSensorUpdate(update)
+    }
+
+    func _testSetMockConnectionState(_ state: ConnectionState, deviceId: String? = nil) {
+        mockConnectedDeviceID = deviceId
+        connectionState = state
+        emitConnectionStateChange(state)
     }
 #endif
 
@@ -462,6 +476,14 @@ extension BLEManager: CBCentralManagerDelegate {
 
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         logger.info("Central manager state: \(central.state.rawValue)")
+
+#if DEBUG
+        if DebugAppScenario.current == .uiConnected {
+            bluetoothState = .poweredOn
+            return
+        }
+#endif
+
         bluetoothState = central.state
 
         switch central.state {

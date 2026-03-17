@@ -4,6 +4,8 @@ struct DeviceView: View {
 
     @Environment(DeviceViewModel.self) private var deviceVM
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @State private var isEditingDeviceName = false
 
     @State private var editedDeviceName = ""
@@ -22,12 +24,20 @@ struct DeviceView: View {
 
     var body: some View {
         List {
+            if dynamicTypeSize.usesAccessibilityLayout && deviceVM.connectionState == .connected {
+                Section {
+                    ConnectedDeviceHeader()
+                }
+            }
+
             deviceInfoSection
             petStatsSection
             configSection
         }
+        .appTabBarScrollContentClearance()
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle(deviceVM.petName ?? "Device Settings")
+        .accessibilityIdentifier("deviceSettingsScreen")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 ConnectButton()
@@ -48,96 +58,159 @@ struct DeviceView: View {
     private var deviceInfoSection: some View {
         Section("Device Info") {
             if isEditingDeviceName {
-                HStack {
-                    TextField("Device Name", text: $editedDeviceName)
-                        .textFieldStyle(.roundedBorder)
-                        .autocorrectionDisabled()
-                        .onChange(of: editedDeviceName) { _, newValue in
-                            if newValue.count > 20 { editedDeviceName = String(newValue.prefix(20)) }
-                        }
-                    Button("Save") {
+                editableTextRow(
+                    title: "Device Name",
+                    text: $editedDeviceName,
+                    isSaving: isSavingDeviceName,
+                    saveAction: {
                         isSavingDeviceName = true
                         Task {
                             defer { isSavingDeviceName = false }
                             await deviceVM.writeDeviceName(editedDeviceName)
                             isEditingDeviceName = false
                         }
-                    }
-                    .disabled(isSavingDeviceName)
-                    Button("Cancel", role: .cancel) {
-                        isEditingDeviceName = false
-                    }
-                    .disabled(isSavingDeviceName)
+                    },
+                    cancelAction: { isEditingDeviceName = false }
+                )
+                .onChange(of: editedDeviceName) { _, newValue in
+                    if newValue.count > 20 { editedDeviceName = String(newValue.prefix(20)) }
                 }
             } else {
-                LabeledContent("Device Name") {
-                    HStack {
-                        Text(deviceVM.deviceName ?? "--")
-                            .foregroundStyle(.secondary)
-                        Button("Edit") {
-                            editedDeviceName = deviceVM.deviceName ?? ""
-                            isEditingDeviceName = true
-                        }
-                        .font(.caption)
-                    }
+                valueActionRow(
+                    title: "Device Name",
+                    value: deviceVM.deviceName ?? "--",
+                    actionTitle: "Edit"
+                ) {
+                    editedDeviceName = deviceVM.deviceName ?? ""
+                    isEditingDeviceName = true
                 }
             }
 
             if isEditingPetName {
-                HStack {
-                    TextField("Pet Name", text: $editedPetName)
-                        .textFieldStyle(.roundedBorder)
-                        .autocorrectionDisabled()
-                        .onChange(of: editedPetName) { _, newValue in
-                            if newValue.count > 20 { editedPetName = String(newValue.prefix(20)) }
-                        }
-                    Button("Save") {
+                editableTextRow(
+                    title: "Pet Name",
+                    text: $editedPetName,
+                    isSaving: isSavingPetName,
+                    saveAction: {
                         isSavingPetName = true
                         Task {
                             defer { isSavingPetName = false }
                             await deviceVM.writePetName(editedPetName)
                             isEditingPetName = false
                         }
-                    }
-                    .disabled(isSavingPetName)
-                    Button("Cancel", role: .cancel) {
-                        isEditingPetName = false
-                    }
-                    .disabled(isSavingPetName)
+                    },
+                    cancelAction: { isEditingPetName = false }
+                )
+                .onChange(of: editedPetName) { _, newValue in
+                    if newValue.count > 20 { editedPetName = String(newValue.prefix(20)) }
                 }
             } else {
-                LabeledContent("Pet Name") {
-                    HStack {
-                        Text(deviceVM.petName ?? "--")
-                            .foregroundStyle(.secondary)
-                        Button("Edit") {
-                            editedPetName = deviceVM.petName ?? ""
-                            isEditingPetName = true
-                        }
-                        .font(.caption)
-                    }
+                valueActionRow(
+                    title: "Pet Name",
+                    value: deviceVM.petName ?? "--",
+                    actionTitle: "Edit"
+                ) {
+                    editedPetName = deviceVM.petName ?? ""
+                    isEditingPetName = true
                 }
             }
 
-            LabeledContent("Device Time") {
+            valueActionRow(
+                title: "Device Time",
+                value: deviceVM.deviceTime.map(UnitFormatters.fmtDateTime) ?? "--",
+                actionTitle: "Sync"
+            ) {
+                Task { await deviceVM.syncTime() }
+            }
+
+            keyValueRow(title: "Log Cells", value: deviceVM.cellCount.map { "\($0)" } ?? "--")
+            keyValueRow(title: "Bonus", value: deviceVM.bonus.map { "\($0) coins" } ?? "--")
+            keyValueRow(title: "Items Owned", value: deviceVM.itemsOwned.map { "\(BLEParsers.countBitmapItems($0))" } ?? "--")
+            keyValueRow(title: "Items Placed", value: deviceVM.itemsPlaced.map { "\(BLEParsers.countBitmapItems($0))" } ?? "--")
+        }
+    }
+
+    @ViewBuilder
+    private func keyValueRow(title: String, value: String) -> some View {
+        if dynamicTypeSize.usesAccessibilityLayout {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(value)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.vertical, 2)
+        } else {
+            LabeledContent(title, value: value)
+        }
+    }
+
+    @ViewBuilder
+    private func valueActionRow(
+        title: String,
+        value: String,
+        actionTitle: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        if dynamicTypeSize.usesAccessibilityLayout {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+
+                Text(value)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button(actionTitle, action: action)
+                    .buttonStyle(.bordered)
+                    .minimumAccessibleTapTarget()
+            }
+            .padding(.vertical, 2)
+        } else {
+            LabeledContent(title) {
                 HStack {
-                    if let t = deviceVM.deviceTime {
-                        Text(UnitFormatters.fmtDateTime(t))
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("--").foregroundStyle(.secondary)
-                    }
-                    Button("Sync") {
-                        Task { await deviceVM.syncTime() }
-                    }
-                    .font(.caption)
+                    Text(value)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button(actionTitle, action: action)
+                        .font(.caption)
                 }
             }
+        }
+    }
 
-            LabeledContent("Log Cells", value: deviceVM.cellCount.map { "\($0)" } ?? "--")
-            LabeledContent("Bonus", value: deviceVM.bonus.map { "\($0) coins" } ?? "--")
-            LabeledContent("Items Owned", value: deviceVM.itemsOwned.map { "\(BLEParsers.countBitmapItems($0))" } ?? "--")
-            LabeledContent("Items Placed", value: deviceVM.itemsPlaced.map { "\(BLEParsers.countBitmapItems($0))" } ?? "--")
+    private func editableTextRow(
+        title: String,
+        text: Binding<String>,
+        isSaving: Bool,
+        saveAction: @escaping () -> Void,
+        cancelAction: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+
+            TextField(title, text: text)
+                .textFieldStyle(.roundedBorder)
+                .autocorrectionDisabled()
+
+            ViewThatFits {
+                HStack {
+                    Button("Save", action: saveAction)
+                        .buttonStyle(.borderedProminent)
+                    Button("Cancel", role: .cancel, action: cancelAction)
+                        .buttonStyle(.bordered)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Button("Save", action: saveAction)
+                        .buttonStyle(.borderedProminent)
+                    Button("Cancel", role: .cancel, action: cancelAction)
+                        .buttonStyle(.bordered)
+                }
+            }
+            .disabled(isSaving)
         }
     }
 
@@ -147,8 +220,8 @@ struct DeviceView: View {
                 StatBarRow(label: "Vigour", value: stats.vigour, color: .green)
                 StatBarRow(label: "Focus", value: stats.focus, color: .blue)
                 StatBarRow(label: "Spirit", value: stats.spirit, color: .purple)
-                LabeledContent("Age", value: "\(stats.age) days")
-                LabeledContent("Interventions", value: "\(stats.interventions)")
+                keyValueRow(title: "Age", value: "\(stats.age) days")
+                keyValueRow(title: "Interventions", value: "\(stats.interventions)")
             } else {
                 Text("Connect to a device to view pet stats.")
                     .foregroundStyle(.secondary)
@@ -252,13 +325,23 @@ private struct StatBarRow: View {
     let value: UInt8
     let color: Color
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(label)
-                Spacer()
-                Text("\(value)")
-                    .foregroundStyle(.secondary)
+            if dynamicTypeSize.usesAccessibilityLayout {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                    Text("\(value)")
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                HStack {
+                    Text(label)
+                    Spacer()
+                    Text("\(value)")
+                        .foregroundStyle(.secondary)
+                }
             }
             ProgressView(value: Double(value), total: 255)
                 .tint(color)
@@ -272,21 +355,37 @@ private struct ConfigNumberField: View {
     @Binding var value: Int
     @State private var text = ""
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        LabeledContent(label) {
-            TextField("", text: $text)
-                .keyboardType(.numberPad)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 80)
-                .onAppear { text = "\(value)" }
-                .onChange(of: text) { _, newText in
-                    if let n = Int(newText) { value = n }
+        Group {
+            if dynamicTypeSize.usesAccessibilityLayout {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(label)
+                        .font(.subheadline.weight(.semibold))
+                    field
                 }
-                .onChange(of: value) { _, newValue in
-                    let expected = "\(newValue)"
-                    if text != expected { text = expected }
+            } else {
+                LabeledContent(label) {
+                    field
                 }
+            }
         }
+        .onAppear { text = "\(value)" }
+        .onChange(of: text) { _, newText in
+            if let n = Int(newText) { value = n }
+        }
+        .onChange(of: value) { _, newValue in
+            let expected = "\(newValue)"
+            if text != expected { text = expected }
+        }
+    }
+
+    private var field: some View {
+        TextField("", text: $text)
+            .keyboardType(.numberPad)
+            .multilineTextAlignment(dynamicTypeSize.usesAccessibilityLayout ? .leading : .trailing)
+            .textFieldStyle(.roundedBorder)
     }
 }
 

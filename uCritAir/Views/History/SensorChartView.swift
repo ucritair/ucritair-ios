@@ -11,6 +11,8 @@ extension ChartPoint {
 
 struct SensorChartView: View {
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let points: [ChartPoint]
 
     let color: Color
@@ -45,6 +47,14 @@ struct SensorChartView: View {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "h:mm a"
+        f.timeZone = utc
+        return f
+    }()
+
+    private static let fmtHourMinuteCompact: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "h:mm"
         f.timeZone = utc
         return f
     }()
@@ -140,7 +150,50 @@ struct SensorChartView: View {
         return start...end
     }
 
+    private var xAxisDesiredCount: Int {
+        let visibleHours = effectiveDomainLength / 3600
+
+        if dynamicTypeSize.usesAccessibilityLayout {
+            switch visibleHours {
+            case ..<3:
+                return 2
+            case ..<12:
+                return 3
+            default:
+                return 4
+            }
+        }
+
+        switch visibleHours {
+        case ..<2:
+            return 3
+        case ..<6:
+            return 4
+        case ..<18:
+            return 5
+        default:
+            return 6
+        }
+    }
+
+    private var lineInterpolation: InterpolationMethod {
+        isZoomed ? .linear : .catmullRom
+    }
+
     var body: some View {
+        Group {
+            if dynamicTypeSize.usesAccessibilityLayout {
+                VStack(alignment: .leading, spacing: 12) {
+                    accessibilitySummary
+                    chartBody
+                }
+            } else {
+                chartBody
+            }
+        }
+    }
+
+    private var chartBody: some View {
         Chart {
             ForEach(points) { point in
                 if let value = point.value {
@@ -150,7 +203,7 @@ struct SensorChartView: View {
                     )
                     .foregroundStyle(color)
                     .lineStyle(StrokeStyle(lineWidth: 1.5))
-                    .interpolationMethod(.catmullRom)
+                    .interpolationMethod(lineInterpolation)
                 }
             }
 
@@ -187,21 +240,31 @@ struct SensorChartView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .chartYScale(domain: yDomain)
         .chartXScale(domain: visibleXDomain)
+        .chartPlotStyle { plotArea in
+            plotArea
+                .clipped()
+        }
         .chartXAxis {
-            AxisMarks(values: .automatic) { value in
+            AxisMarks(values: .automatic(desiredCount: xAxisDesiredCount)) { value in
                 AxisGridLine()
                 AxisValueLabel {
                     if let date = value.as(Date.self) {
                         Text(adaptiveXAxisLabel(for: date))
                             .font(.caption2)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
                     }
                 }
             }
         }
         .chartYAxis {
-            AxisMarks(position: .leading) { _ in
+            AxisMarks(
+                position: .leading,
+                values: .automatic(desiredCount: dynamicTypeSize.usesAccessibilityLayout ? 3 : 5)
+            ) { _ in
                 AxisGridLine()
                 AxisValueLabel()
             }
@@ -293,6 +356,7 @@ struct SensorChartView: View {
                     )
             }
         }
+        .padding(.bottom, dynamicTypeSize.usesAccessibilityLayout ? 10 : 14)
         .overlay(alignment: .topTrailing) {
             if isZoomed {
                 Button {
@@ -300,13 +364,21 @@ struct SensorChartView: View {
                         resetToFullDomain()
                     }
                 } label: {
-                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.caption2)
-                        .padding(6)
-                        .background(.ultraThinMaterial, in: Circle())
+                    if dynamicTypeSize.usesAccessibilityLayout {
+                        Label("Reset zoom", systemImage: "arrow.up.left.and.arrow.down.right")
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(.ultraThinMaterial, in: Capsule())
+                    } else {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.caption2)
+                            .padding(6)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
                 }
                 .padding(8)
                 .accessibilityLabel("Reset zoom")
+                .minimumAccessibleTapTarget()
             }
         }
         .onAppear {
@@ -320,6 +392,37 @@ struct SensorChartView: View {
                 resetToFullDomain()
             }
         }
+    }
+
+    @ViewBuilder
+    private var accessibilitySummary: some View {
+        if let point = summaryPoint, let value = point.value {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(selectedPoint == nil ? "Latest Value" : "Selected Value")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(summaryValueText(for: value))
+                    .font(.headline)
+                    .monospacedDigit()
+                Text(annotationDateLabel(point.date))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private var summaryPoint: ChartPoint? {
+        selectedPoint ?? points.last(where: { $0.value != nil })
+    }
+
+    private func summaryValueText(for value: Double) -> String {
+        if unit.isEmpty {
+            return formatValue(value)
+        }
+        return "\(formatValue(value)) \(unit)"
     }
 
     private func resetToFullDomain() {
@@ -343,9 +446,12 @@ struct SensorChartView: View {
     }
 
     private func adaptiveXAxisLabel(for date: Date) -> String {
+        let spanHours = effectiveDomainLength / 3600
         let spanDays = effectiveDomainLength / 86400
 
-        if spanDays <= 0.125 {
+        if spanHours <= 6 {
+            return Self.fmtHourMinuteCompact.string(from: date)
+        } else if spanDays <= 0.125 {
             return Self.fmtHourMinute.string(from: date)
         } else if spanDays <= 2 {
             return Self.fmtHour24.string(from: date)
