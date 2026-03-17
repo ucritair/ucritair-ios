@@ -34,7 +34,6 @@ struct DeviceView: View {
             petStatsSection
             configSection
         }
-        .appTabBarScrollContentClearance()
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle(deviceVM.petName ?? "Device Settings")
         .accessibilityIdentifier("deviceSettingsScreen")

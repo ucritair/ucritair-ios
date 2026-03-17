@@ -1,24 +1,5 @@
 import SwiftUI
 
-enum AppChrome {
-    static let customTabBarButtonHeight: CGFloat = 50
-    static let customTabBarInnerHorizontalPadding: CGFloat = 10
-    static let customTabBarInnerVerticalPadding: CGFloat = 8
-    static let customTabBarOuterHorizontalPadding: CGFloat = 12
-    static let customTabBarOuterTopPadding: CGFloat = 8
-    static let customTabBarOuterBottomPadding: CGFloat = 6
-    static let customTabBarCornerRadius: CGFloat = 24
-    static let customTabBarSelectedCornerRadius: CGFloat = 18
-
-    static let customTabBarReservedHeight: CGFloat =
-        customTabBarButtonHeight
-        + (customTabBarInnerVerticalPadding * 2)
-        + customTabBarOuterTopPadding
-        + customTabBarOuterBottomPadding
-
-    static let customTabBarContentClearance: CGFloat = customTabBarReservedHeight + 12
-}
-
 extension DynamicTypeSize {
     var usesAccessibilityLayout: Bool {
         isAccessibilitySize
@@ -29,10 +10,6 @@ extension View {
     func minimumAccessibleTapTarget() -> some View {
         frame(minWidth: 44, minHeight: 44)
             .contentShape(Rectangle())
-    }
-
-    func appTabBarScrollContentClearance() -> some View {
-        contentMargins(.bottom, AppChrome.customTabBarContentClearance, for: .scrollContent)
     }
 }
 

@@ -62,7 +62,6 @@ struct AboutView: View {
                 }
             }
         }
-        .appTabBarScrollContentClearance()
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
     }

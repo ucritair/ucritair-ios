@@ -53,9 +53,12 @@ enum UnitFormatters {
     /// The device RTC stores local time (not UTC), so we add the timezone offset
     /// to produce a value the device interprets correctly.
     static func getLocalTimeAsEpoch() -> UInt32 {
-        let now = Date()
-        let offsetSeconds = TimeZone.current.secondsFromGMT(for: now)
-        let localEpoch = Int(now.timeIntervalSince1970) + offsetSeconds
+        localEpoch(for: Date())
+    }
+
+    static func localEpoch(for date: Date, timeZone: TimeZone = .current) -> UInt32 {
+        let offsetSeconds = timeZone.secondsFromGMT(for: date)
+        let localEpoch = Int(date.timeIntervalSince1970) + offsetSeconds
         return UInt32(clamping: localEpoch)
     }
 }

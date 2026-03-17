@@ -20,7 +20,6 @@ struct AdvancedView: View {
             bleInspectorSection
             cellInspectorSection
         }
-        .appTabBarScrollContentClearance()
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle("Advanced")
         .accessibilityIdentifier("advancedScreen")

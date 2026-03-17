@@ -176,6 +176,5 @@ struct DeviceListView: View {
                 }
             }
         }
-        .appTabBarScrollContentClearance()
     }
 }

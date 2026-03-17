@@ -13,6 +13,7 @@
 		A1B2C3D40100000000000001 /* DebugAppScenarios.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40200000000000001 /* DebugAppScenarios.swift */; };
 		A1B2C3D40100000000000002 /* DynamicTypeSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40200000000000002 /* DynamicTypeSupport.swift */; };
 		A1B2C3D40100000000000003 /* AccessibilityPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40200000000000003 /* AccessibilityPreviews.swift */; };
+		A1B2C3D40100000000000020 /* NativeTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40200000000000020 /* NativeTabBarController.swift */; };
 		A1B2C3D40100000000000010 /* AccessibilitySmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40200000000000010 /* AccessibilitySmokeTests.swift */; };
 		20C3C89C65C79D05CC9A94F2 /* uCritAirApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0172870B80562AC081A31E4E /* uCritAirApp.swift */; };
 		2A4CFF65575FBD5A96F684EE /* AQIScoringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDECA4C9DE87EC1D0AAF43F4 /* AQIScoringTests.swift */; };
@@ -118,6 +119,7 @@
 		A1B2C3D40200000000000001 /* DebugAppScenarios.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugAppScenarios.swift; sourceTree = "<group>"; };
 		A1B2C3D40200000000000002 /* DynamicTypeSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicTypeSupport.swift; sourceTree = "<group>"; };
 		A1B2C3D40200000000000003 /* AccessibilityPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityPreviews.swift; sourceTree = "<group>"; };
+		A1B2C3D40200000000000020 /* NativeTabBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeTabBarController.swift; sourceTree = "<group>"; };
 		A1B2C3D40200000000000010 /* AccessibilitySmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilitySmokeTests.swift; sourceTree = "<group>"; };
 		A1B2C3D40200000000000011 /* uCritAirUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = uCritAirUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A012DA4BFEB8A6B5AC93E134 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -287,6 +289,7 @@
 			children = (
 				A012DA4BFEB8A6B5AC93E134 /* ContentView.swift */,
 				A1B2C3D40200000000000001 /* DebugAppScenarios.swift */,
+				A1B2C3D40200000000000020 /* NativeTabBarController.swift */,
 				C9DAFFF54AA61864BF73C5F3 /* Info.plist */,
 				0172870B80562AC081A31E4E /* uCritAirApp.swift */,
 			);
@@ -500,6 +503,7 @@
 				AEA8EB87770104974C8CF240 /* DashboardView.swift in Sources */,
 				721A937FAF8C55ADC24DC20D /* Data+Parsing.swift in Sources */,
 				A1B2C3D40100000000000001 /* DebugAppScenarios.swift in Sources */,
+				A1B2C3D40100000000000020 /* NativeTabBarController.swift in Sources */,
 				E197E519BA5771596159821D /* DeveloperView.swift in Sources */,
 				BD2866ACAAE84F994EF45598 /* DeviceCardRow.swift in Sources */,
 				5B8D8A0D8BF7CDB5451E3DD2 /* DeviceConfig.swift in Sources */,

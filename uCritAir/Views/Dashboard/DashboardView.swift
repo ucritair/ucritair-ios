@@ -33,12 +33,6 @@ struct DashboardView: View {
             }
             .padding()
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            Color.clear
-                .frame(height: AppChrome.customTabBarContentClearance)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
         .background(Color(.systemGroupedBackground))
         .accessibilityIdentifier("dashboardScreen")
     }

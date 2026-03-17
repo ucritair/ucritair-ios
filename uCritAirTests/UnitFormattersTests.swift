@@ -45,6 +45,41 @@ struct UnitFormattersTests {
         #expect(abs(actual - expected) <= 2)
     }
 
+    @Test("local epoch helper honors DST offset changes for a fixed timezone")
+    func localEpochHelperDSTBoundaries() throws {
+        let chicago = try #require(TimeZone(identifier: "America/Chicago"))
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+
+        let springBefore = try #require(formatter.date(from: "2026-03-08T07:59:59Z"))
+        let springAfter = try #require(formatter.date(from: "2026-03-08T08:00:00Z"))
+        let fallBefore = try #require(formatter.date(from: "2026-11-01T06:59:59Z"))
+        let fallAfter = try #require(formatter.date(from: "2026-11-01T07:00:00Z"))
+
+        #expect(chicago.secondsFromGMT(for: springBefore) == -21_600)
+        #expect(chicago.secondsFromGMT(for: springAfter) == -18_000)
+        #expect(chicago.secondsFromGMT(for: fallBefore) == -18_000)
+        #expect(chicago.secondsFromGMT(for: fallAfter) == -21_600)
+
+        #expect(
+            Int(UnitFormatters.localEpoch(for: springBefore, timeZone: chicago))
+                == Int(springBefore.timeIntervalSince1970) - 21_600
+        )
+        #expect(
+            Int(UnitFormatters.localEpoch(for: springAfter, timeZone: chicago))
+                == Int(springAfter.timeIntervalSince1970) - 18_000
+        )
+        #expect(
+            Int(UnitFormatters.localEpoch(for: fallBefore, timeZone: chicago))
+                == Int(fallBefore.timeIntervalSince1970) - 18_000
+        )
+        #expect(
+            Int(UnitFormatters.localEpoch(for: fallAfter, timeZone: chicago))
+                == Int(fallAfter.timeIntervalSince1970) - 21_600
+        )
+    }
+
     private static func expectedDateTimeString(epoch: UInt32) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
