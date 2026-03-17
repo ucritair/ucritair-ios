@@ -54,7 +54,7 @@ final class HistoryViewModel {
     var allCells: [LogCellEntity] = [] {
         didSet {
             invalidateCSVCache()
-            recomputeHistoryCaches()
+            recomputeAllHistoryCaches()
         }
     }
 
@@ -71,14 +71,14 @@ final class HistoryViewModel {
     var timeRange: TimeRange = .oneDay {
         didSet {
             guard oldValue != timeRange, !isBatchUpdatingHistorySelection else { return }
-            recomputeHistoryCaches()
+            recomputePresentationCaches()
         }
     }
 
     var dayOffset = 0 {
         didSet {
             guard oldValue != dayOffset, !isBatchUpdatingHistorySelection else { return }
-            recomputeHistoryCaches()
+            recomputePresentationCaches()
         }
     }
 
@@ -113,6 +113,8 @@ final class HistoryViewModel {
 
     private var statsCache: [String: SensorStats] = [:]
 
+    private let monotonicFilter: ([LogCellEntity]) -> [LogCellEntity]
+
     private let logger = Logger(subsystem: "com.ucritter.ucritair", category: "History")
 
     private static let dayLabelFormatter: DateFormatter = {
@@ -121,6 +123,10 @@ final class HistoryViewModel {
         fmt.timeZone = .gmt
         return fmt
     }()
+
+    init(monotonicFilter: @escaping ([LogCellEntity]) -> [LogCellEntity] = TimelineFilter.filterMonotonic) {
+        self.monotonicFilter = monotonicFilter
+    }
 
     deinit {
         autoPollTimer?.invalidate()
@@ -521,14 +527,18 @@ final class HistoryViewModel {
         isBatchUpdatingHistorySelection = true
         updates()
         isBatchUpdatingHistorySelection = false
-        recomputeHistoryCaches()
+        recomputePresentationCaches()
     }
 
-    private func recomputeHistoryCaches() {
-        monotonicCellsCache = TimelineFilter.filterMonotonic(allCells)
+    private func recomputeAllHistoryCaches() {
+        monotonicCellsCache = monotonicFilter(allCells)
+        dataDateRangeCache = makeDataDateRange(from: monotonicCellsCache)
+        recomputePresentationCaches()
+    }
+
+    private func recomputePresentationCaches() {
         filteredCellsCache = makeFilteredCells(from: monotonicCellsCache)
         chartXDomainCache = makeChartXDomain(from: filteredCellsCache)
-        dataDateRangeCache = makeDataDateRange(from: monotonicCellsCache)
         chartPointsCache = [:]
         statsCache = [:]
     }

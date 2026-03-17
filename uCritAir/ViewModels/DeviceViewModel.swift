@@ -117,10 +117,8 @@ final class DeviceViewModel {
             return
         }
         do {
-            let descriptor = FetchDescriptor<DeviceProfile>(
-                sortBy: [SortDescriptor(\.sortOrder, order: .forward)]
-            )
-            knownDevices = try ctx.fetch(descriptor)
+            let descriptor = FetchDescriptor<DeviceProfile>()
+            knownDevices = try ctx.fetch(descriptor).sorted(by: Self.deviceProfileSort)
             logger.info("loadKnownDevices: found \(self.knownDevices.count) devices")
         } catch {
             self.error = "Failed to load devices. Try restarting the app."
@@ -138,10 +136,7 @@ final class DeviceViewModel {
         }
 
         do {
-            let descriptor = FetchDescriptor<DeviceProfile>(
-                predicate: #Predicate { $0.deviceId == deviceId }
-            )
-            let existing = try ctx.fetch(descriptor).first
+            let existing = knownDevices.first { $0.deviceId == deviceId }
 
             if let profile = existing {
                 profile.deviceName = deviceName ?? profile.deviceName
@@ -427,5 +422,13 @@ final class DeviceViewModel {
             return "\(context): \(error.localizedDescription)"
         }
         return "\(context): \(error.localizedDescription)"
+    }
+
+    private static func deviceProfileSort(_ lhs: DeviceProfile, _ rhs: DeviceProfile) -> Bool {
+        if lhs.sortOrder != rhs.sortOrder {
+            return lhs.sortOrder < rhs.sortOrder
+        }
+
+        return lhs.deviceName.localizedCaseInsensitiveCompare(rhs.deviceName) == .orderedAscending
     }
 }

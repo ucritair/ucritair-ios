@@ -77,6 +77,31 @@ struct HistoryViewModelTests {
         #expect(vm.filteredCells.map(\.cellNumber) == [2, 3])
     }
 
+    @Test("time-range and day changes reuse the monotonic history cache")
+    func testTimeSelectionDoesNotRecomputeMonotonicHistory() {
+        var filterInvocationCount = 0
+        let vm = HistoryViewModel(monotonicFilter: { cells in
+            filterInvocationCount += 1
+            return TimelineFilter.filterMonotonic(cells)
+        })
+        let now = Int(Date().timeIntervalSince1970)
+        vm.allCells = [
+            makeCell(cellNumber: 1, timestamp: now - (3 * 86_400), co2: 390),
+            makeCell(cellNumber: 2, timestamp: now - 7_200, co2: 410),
+            makeCell(cellNumber: 3, timestamp: now - 1_800, co2: 420),
+            makeCell(cellNumber: 4, timestamp: now, co2: 450),
+        ]
+
+        #expect(filterInvocationCount == 1)
+
+        vm.goBack()
+        vm.setTimeRange(.sevenDays)
+        vm.setTimeRange(.all)
+        vm.setTimeRange(.oneHour)
+
+        #expect(filterInvocationCount == 1)
+    }
+
     @Test("chartPoints inserts a nil gap marker")
     func testChartPointsGapInsertion() throws {
         let vm = HistoryViewModel()
