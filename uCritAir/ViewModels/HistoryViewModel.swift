@@ -51,7 +51,12 @@ struct SensorStats {
 @Observable
 final class HistoryViewModel {
 
-    var allCells: [LogCellEntity] = []
+    var allCells: [LogCellEntity] = [] {
+        didSet {
+            invalidateCSVCache()
+            recomputeHistoryCaches()
+        }
+    }
 
     var isStreaming = false
 
@@ -63,9 +68,19 @@ final class HistoryViewModel {
 
     var selectedSensor: String? = "co2"
 
-    var timeRange: TimeRange = .oneDay
+    var timeRange: TimeRange = .oneDay {
+        didSet {
+            guard oldValue != timeRange, !isBatchUpdatingHistorySelection else { return }
+            recomputeHistoryCaches()
+        }
+    }
 
-    var dayOffset = 0
+    var dayOffset = 0 {
+        didSet {
+            guard oldValue != dayOffset, !isBatchUpdatingHistorySelection else { return }
+            recomputeHistoryCaches()
+        }
+    }
 
     var currentDeviceId: String?
 
@@ -79,9 +94,24 @@ final class HistoryViewModel {
 
     private var cachedCSVURL: URL?
 
-    private var csvCacheKeySnapshot: Int?
-
     private var lastLoadedCacheDeviceId: String??
+
+    private var isBatchUpdatingHistorySelection = false
+
+    private var monotonicCellsCache: [LogCellEntity] = []
+
+    private var filteredCellsCache: [LogCellEntity] = []
+
+    private var chartXDomainCache: ClosedRange<Date>?
+
+    private var dataDateRangeCache: ClosedRange<Date> = {
+        let today = Calendar.current.startOfDay(for: .now)
+        return today...today
+    }()
+
+    private var chartPointsCache: [String: [ChartPoint]] = [:]
+
+    private var statsCache: [String: SensorStats] = [:]
 
     private let logger = Logger(subsystem: "com.ucritter.ucritair", category: "History")
 
@@ -139,25 +169,11 @@ final class HistoryViewModel {
     }
 
     var monotonicCells: [LogCellEntity] {
-        TimelineFilter.filterMonotonic(allCells)
+        monotonicCellsCache
     }
 
     var filteredCells: [LogCellEntity] {
-        let mono = monotonicCells
-        guard !mono.isEmpty else { return [] }
-
-        if timeRange == .oneDay {
-            let (dayStart, dayEnd) = calendarDayBounds(for: dayOffset)
-            let startTs = Int(dayStart.timeIntervalSince1970)
-            let endTs = Int(dayEnd.timeIntervalSince1970)
-            return mono.filter { $0.timestamp >= startTs && $0.timestamp < endTs }
-        }
-
-        if timeRange == .all { return mono }
-
-        guard let latestTs = mono.last?.timestamp else { return [] }
-        let cutoff = latestTs - timeRange.seconds
-        return mono.filter { $0.timestamp >= cutoff }
+        filteredCellsCache
     }
 
     private func calendarDayBounds(for offset: Int) -> (start: Date, end: Date) {
@@ -178,43 +194,23 @@ final class HistoryViewModel {
     }
 
     func chartPoints(for sensorDef: SensorDef) -> [ChartPoint] {
-        let cells = filteredCells
-        guard !cells.isEmpty else { return [] }
-
-        let maxPoints = 2000
-        let stride = max(1, cells.count / maxPoints)
-        let sampled = stride > 1
-            ? Swift.stride(from: 0, to: cells.count, by: stride).map { cells[$0] }
-            : cells
-
-        var points: [ChartPoint] = []
-        for i in 0..<sampled.count {
-            if i > 0 && sampled[i].timestamp - sampled[i - 1].timestamp > Self.gapThreshold {
-                let midTs = (sampled[i - 1].timestamp + sampled[i].timestamp) / 2
-                points.append(ChartPoint(timestamp: midTs, value: nil))
-            }
-            points.append(ChartPoint(
-                timestamp: sampled[i].timestamp,
-                value: sensorDef.extract(sampled[i])
-            ))
+        if let cached = chartPointsCache[sensorDef.id] {
+            return cached
         }
+
+        let points = makeChartPoints(for: sensorDef, from: filteredCellsCache)
+        chartPointsCache[sensorDef.id] = points
         return points
     }
 
     func stats(for sensorDef: SensorDef) -> SensorStats? {
-        let cells = filteredCells
-        guard !cells.isEmpty else { return nil }
-        let values = cells.map { sensorDef.extract($0) }
-        guard let latest = values.last,
-              let minVal = values.min(),
-              let maxVal = values.max() else { return nil }
-        let sum = values.reduce(0, +)
-        return SensorStats(
-            latest: latest,
-            avg: sum / Double(values.count),
-            min: minVal,
-            max: maxVal
-        )
+        if let cached = statsCache[sensorDef.id] {
+            return cached
+        }
+
+        let computed = makeStats(for: sensorDef, from: filteredCellsCache)
+        statsCache[sensorDef.id] = computed
+        return computed
     }
 
     var selectedSensorDef: SensorDef? {
@@ -242,17 +238,7 @@ final class HistoryViewModel {
     }
 
     var chartXDomain: ClosedRange<Date>? {
-        if timeRange == .oneDay {
-            let (start, end) = calendarDayBounds(for: dayOffset)
-            return start...end
-        }
-        let cells = filteredCells
-        guard let first = cells.first, let last = cells.last else { return nil }
-        let minDate = Date(timeIntervalSince1970: TimeInterval(first.timestamp))
-        let maxDate = Date(timeIntervalSince1970: TimeInterval(last.timestamp))
-        let span = maxDate.timeIntervalSince(minDate)
-        let paddedMax = maxDate.addingTimeInterval(max(span * 0.02, 60))
-        return minDate...paddedMax
+        chartXDomainCache
     }
 
     private var effectiveDeviceId: String? {
@@ -452,34 +438,18 @@ final class HistoryViewModel {
     func csvFileURL() -> URL? {
         let cells = allCells
         guard !cells.isEmpty else { return nil }
-        let cacheKey = csvCacheKey(for: cells)
-        if cacheKey == csvCacheKeySnapshot, let url = cachedCSVURL {
+
+        if let url = cachedCSVURL {
             if FileManager.default.fileExists(atPath: url.path) {
                 return url
             }
             cachedCSVURL = nil
         }
+
         let csv = CSVExporter.toCSV(cells)
         let url = try? CSVExporter.writeTemporaryFile(csv)
         cachedCSVURL = url
-        csvCacheKeySnapshot = cacheKey
         return url
-    }
-
-    private func csvCacheKey(for cells: [LogCellEntity]) -> Int {
-        var hasher = Hasher()
-        hasher.combine(cells.count)
-        if let first = cells.first {
-            hasher.combine(first.cellNumber)
-            hasher.combine(first.timestamp)
-            hasher.combine(first.temperature.bitPattern)
-        }
-        if let last = cells.last {
-            hasher.combine(last.cellNumber)
-            hasher.combine(last.timestamp)
-            hasher.combine(last.temperature.bitPattern)
-        }
-        return hasher.finalize()
     }
 
     func startAutoPoll() {
@@ -514,8 +484,12 @@ final class HistoryViewModel {
     }
 
     func setTimeRange(_ range: TimeRange) {
-        timeRange = range
-        if range != .oneDay { dayOffset = 0 }
+        updateHistorySelection {
+            timeRange = range
+            if range != .oneDay {
+                dayOffset = 0
+            }
+        }
     }
 
     var selectedDate: Date {
@@ -525,15 +499,7 @@ final class HistoryViewModel {
     }
 
     var dataDateRange: ClosedRange<Date> {
-        let local = Calendar.current
-        let today = local.startOfDay(for: Date())
-        guard let earliest = monotonicCells.first else {
-            return today...today
-        }
-        let earliestDate = local.startOfDay(
-            for: Date(timeIntervalSince1970: TimeInterval(earliest.timestamp))
-        )
-        return earliestDate...today
+        dataDateRangeCache
     }
 
     func jumpToDate(_ date: Date) {
@@ -541,7 +507,121 @@ final class HistoryViewModel {
         let today = local.startOfDay(for: Date())
         let target = local.startOfDay(for: date)
         let offset = local.dateComponents([.day], from: today, to: target).day ?? 0
-        dayOffset = min(0, offset)
-        timeRange = .oneDay
+        updateHistorySelection {
+            dayOffset = min(0, offset)
+            timeRange = .oneDay
+        }
+    }
+
+    private func invalidateCSVCache() {
+        cachedCSVURL = nil
+    }
+
+    private func updateHistorySelection(_ updates: () -> Void) {
+        isBatchUpdatingHistorySelection = true
+        updates()
+        isBatchUpdatingHistorySelection = false
+        recomputeHistoryCaches()
+    }
+
+    private func recomputeHistoryCaches() {
+        monotonicCellsCache = TimelineFilter.filterMonotonic(allCells)
+        filteredCellsCache = makeFilteredCells(from: monotonicCellsCache)
+        chartXDomainCache = makeChartXDomain(from: filteredCellsCache)
+        dataDateRangeCache = makeDataDateRange(from: monotonicCellsCache)
+        chartPointsCache = [:]
+        statsCache = [:]
+    }
+
+    private func makeFilteredCells(from mono: [LogCellEntity]) -> [LogCellEntity] {
+        guard !mono.isEmpty else { return [] }
+
+        if timeRange == .oneDay {
+            let (dayStart, dayEnd) = calendarDayBounds(for: dayOffset)
+            let startTs = Int(dayStart.timeIntervalSince1970)
+            let endTs = Int(dayEnd.timeIntervalSince1970)
+            return mono.filter { $0.timestamp >= startTs && $0.timestamp < endTs }
+        }
+
+        if timeRange == .all {
+            return mono
+        }
+
+        guard let latestTs = mono.last?.timestamp else { return [] }
+        let cutoff = latestTs - timeRange.seconds
+        return mono.filter { $0.timestamp >= cutoff }
+    }
+
+    private func makeChartPoints(for sensorDef: SensorDef, from cells: [LogCellEntity]) -> [ChartPoint] {
+        guard !cells.isEmpty else { return [] }
+
+        let maxPoints = 2000
+        let stride = max(1, cells.count / maxPoints)
+        let sampled = stride > 1
+            ? Swift.stride(from: 0, to: cells.count, by: stride).map { cells[$0] }
+            : cells
+
+        var points: [ChartPoint] = []
+        points.reserveCapacity(sampled.count + max(0, sampled.count / 8))
+
+        for i in 0..<sampled.count {
+            if i > 0 && sampled[i].timestamp - sampled[i - 1].timestamp > Self.gapThreshold {
+                let midTs = (sampled[i - 1].timestamp + sampled[i].timestamp) / 2
+                points.append(ChartPoint(timestamp: midTs, value: nil))
+            }
+
+            points.append(ChartPoint(
+                timestamp: sampled[i].timestamp,
+                value: sensorDef.extract(sampled[i])
+            ))
+        }
+
+        return points
+    }
+
+    private func makeStats(for sensorDef: SensorDef, from cells: [LogCellEntity]) -> SensorStats? {
+        guard !cells.isEmpty else { return nil }
+
+        let values = cells.map { sensorDef.extract($0) }
+        guard let latest = values.last,
+              let minVal = values.min(),
+              let maxVal = values.max() else {
+            return nil
+        }
+
+        let sum = values.reduce(0, +)
+        return SensorStats(
+            latest: latest,
+            avg: sum / Double(values.count),
+            min: minVal,
+            max: maxVal
+        )
+    }
+
+    private func makeChartXDomain(from cells: [LogCellEntity]) -> ClosedRange<Date>? {
+        if timeRange == .oneDay {
+            let (start, end) = calendarDayBounds(for: dayOffset)
+            return start...end
+        }
+
+        guard let first = cells.first, let last = cells.last else { return nil }
+        let minDate = Date(timeIntervalSince1970: TimeInterval(first.timestamp))
+        let maxDate = Date(timeIntervalSince1970: TimeInterval(last.timestamp))
+        let span = maxDate.timeIntervalSince(minDate)
+        let paddedMax = maxDate.addingTimeInterval(max(span * 0.02, 60))
+        return minDate...paddedMax
+    }
+
+    private func makeDataDateRange(from mono: [LogCellEntity]) -> ClosedRange<Date> {
+        let local = Calendar.current
+        let today = local.startOfDay(for: Date())
+        guard let earliest = mono.first else {
+            return today...today
+        }
+
+        let earliestDate = local.startOfDay(
+            for: Date(timeIntervalSince1970: TimeInterval(earliest.timestamp))
+        )
+        return earliestDate...today
     }
 }

@@ -236,19 +236,84 @@ final class DeviceViewModel {
     func refreshDeviceInfo() async {
         guard let manager = bleManager else { return }
 
-        do {
-            deviceName = try await BLECharacteristics.readDeviceName(using: manager)
-            petName = try await BLECharacteristics.readPetName(using: manager)
-            deviceTime = try await BLECharacteristics.readTime(using: manager)
-            petStats = try await BLECharacteristics.readStats(using: manager)
-            config = try await BLECharacteristics.readDeviceConfig(using: manager)
-            itemsOwned = try await BLECharacteristics.readItemsOwned(using: manager)
-            itemsPlaced = try await BLECharacteristics.readItemsPlaced(using: manager)
-            bonus = try await BLECharacteristics.readBonus(using: manager)
-            cellCount = try await BLECharacteristics.readCellCount(using: manager)
-        } catch {
-            self.error = Self.friendlyMessage(for: error, context: "Failed to read device info")
-            logger.error("Failed to read device info: \(error)")
+        error = nil
+        var failedFields: [String] = []
+
+        if let value = await refreshDeviceInfoField(named: "device name", read: {
+            try await BLECharacteristics.readDeviceName(using: manager)
+        }) {
+            deviceName = value
+        } else {
+            failedFields.append("device name")
+        }
+
+        if let value = await refreshDeviceInfoField(named: "pet name", read: {
+            try await BLECharacteristics.readPetName(using: manager)
+        }) {
+            petName = value
+        } else {
+            failedFields.append("pet name")
+        }
+
+        if let value = await refreshDeviceInfoField(named: "device time", read: {
+            try await BLECharacteristics.readTime(using: manager)
+        }) {
+            deviceTime = value
+        } else {
+            failedFields.append("device time")
+        }
+
+        if let value = await refreshDeviceInfoField(named: "pet stats", read: {
+            try await BLECharacteristics.readStats(using: manager)
+        }) {
+            petStats = value
+        } else {
+            failedFields.append("pet stats")
+        }
+
+        if let value = await refreshDeviceInfoField(named: "device config", read: {
+            try await BLECharacteristics.readDeviceConfig(using: manager)
+        }) {
+            config = value
+        } else {
+            failedFields.append("device config")
+        }
+
+        if let value = await refreshDeviceInfoField(named: "owned items", read: {
+            try await BLECharacteristics.readItemsOwned(using: manager)
+        }) {
+            itemsOwned = value
+        } else {
+            failedFields.append("owned items")
+        }
+
+        if let value = await refreshDeviceInfoField(named: "placed items", read: {
+            try await BLECharacteristics.readItemsPlaced(using: manager)
+        }) {
+            itemsPlaced = value
+        } else {
+            failedFields.append("placed items")
+        }
+
+        if let value = await refreshDeviceInfoField(named: "bonus", read: {
+            try await BLECharacteristics.readBonus(using: manager)
+        }) {
+            bonus = value
+        } else {
+            failedFields.append("bonus")
+        }
+
+        if let value = await refreshDeviceInfoField(named: "cell count", read: {
+            try await BLECharacteristics.readCellCount(using: manager)
+        }) {
+            cellCount = value
+        } else {
+            failedFields.append("cell count")
+        }
+
+        if !failedFields.isEmpty {
+            logger.warning("refreshDeviceInfo completed with partial failures: \(failedFields.joined(separator: ", "))")
+            error = "Some device info could not be refreshed. Showing the last known values. Pull to retry."
         }
     }
 
@@ -331,6 +396,19 @@ final class DeviceViewModel {
         itemsPlaced = nil
         bonus = nil
         cellCount = nil
+    }
+
+    @MainActor
+    private func refreshDeviceInfoField<Value>(
+        named fieldName: String,
+        read: () async throws -> Value
+    ) async -> Value? {
+        do {
+            return try await read()
+        } catch {
+            logger.error("Failed to refresh \(fieldName, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 
     private static func friendlyMessage(for error: Error, context: String) -> String {

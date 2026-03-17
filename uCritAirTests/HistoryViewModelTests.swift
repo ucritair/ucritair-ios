@@ -38,6 +38,31 @@ struct HistoryViewModelTests {
         #expect(FileManager.default.fileExists(atPath: regeneratedURL.path))
     }
 
+    @Test("csvFileURL invalidates cache when a middle row changes")
+    func testCSVCacheInvalidatesForMiddleRowChange() throws {
+        let vm = HistoryViewModel()
+
+        vm.allCells = [
+            makeCell(cellNumber: 1, temperature: 21.0),
+            makeCell(cellNumber: 2, temperature: 22.0),
+            makeCell(cellNumber: 3, temperature: 23.0),
+        ]
+        let firstURL = try #require(vm.csvFileURL())
+        let firstCSV = try String(contentsOf: firstURL, encoding: .utf8)
+
+        vm.allCells = [
+            makeCell(cellNumber: 1, temperature: 21.0),
+            makeCell(cellNumber: 2, temperature: 42.0),
+            makeCell(cellNumber: 3, temperature: 23.0),
+        ]
+        let secondURL = try #require(vm.csvFileURL())
+        let secondCSV = try String(contentsOf: secondURL, encoding: .utf8)
+
+        #expect(firstURL != secondURL)
+        #expect(firstCSV != secondCSV)
+        #expect(secondCSV.contains("42.000"))
+    }
+
     @Test("filteredCells applies rolling one-hour window")
     func testFilteredCellsOneHour() {
         let vm = HistoryViewModel()

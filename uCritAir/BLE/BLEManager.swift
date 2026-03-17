@@ -16,6 +16,21 @@ enum ConnectionState: String, Sendable {
 @Observable
 final class BLEManager: NSObject, @unchecked Sendable {
 
+    private struct PendingReadOperation {
+        let continuation: CheckedContinuation<Data, Error>
+        let timeoutWork: DispatchWorkItem
+    }
+
+    private struct PendingWriteOperation {
+        let continuation: CheckedContinuation<Void, Error>
+        let timeoutWork: DispatchWorkItem
+    }
+
+    private struct PendingWriteCallbackOperation {
+        let callback: (Error?) -> Void
+        let timeoutWork: DispatchWorkItem
+    }
+
     var connectionState: ConnectionState = .disconnected
 
     private(set) var discoveredPeripherals: [CBPeripheral] = []
@@ -44,6 +59,8 @@ final class BLEManager: NSObject, @unchecked Sendable {
 
     private let connectTimeout: TimeInterval = 5.0
 
+    private let characteristicOperationTimeout: TimeInterval = 5.0
+
     private var connectTimeoutWork: DispatchWorkItem?
 
     private var pollTimer: Timer?
@@ -52,11 +69,11 @@ final class BLEManager: NSObject, @unchecked Sendable {
     // exclusively on the main queue. CBCentralManager is initialised with queue: .main,
     // so all delegate callbacks run on main. Async read/write methods dispatch to main
     // before touching pendingReads/Writes. No additional locking is needed.
-    private var pendingReads: [CBUUID: CheckedContinuation<Data, Error>] = [:]
+    private var pendingReads: [CBUUID: PendingReadOperation] = [:]
 
-    private var pendingWrites: [CBUUID: CheckedContinuation<Void, Error>] = [:]
+    private var pendingWrites: [CBUUID: PendingWriteOperation] = [:]
 
-    private var pendingWriteCallbacks: [CBUUID: (Error?) -> Void] = [:]
+    private var pendingWriteCallbacks: [CBUUID: PendingWriteCallbackOperation] = [:]
 
     private var sensorUpdateObservers: [UUID: (PartialSensorUpdate) -> Void] = [:]
 
@@ -134,6 +151,34 @@ final class BLEManager: NSObject, @unchecked Sendable {
         connectionState = state
         emitConnectionStateChange(state)
     }
+
+    @MainActor
+    func _testAwaitReadTimeout(for uuid: CBUUID, after timeout: TimeInterval = 0.01) async throws {
+        _ = try await withCheckedThrowingContinuation { continuation in
+            guard registerPendingRead(for: uuid, timeoutInterval: timeout, continuation: continuation) else {
+                continuation.resume(throwing: BLEError.operationInProgress)
+                return
+            }
+        }
+    }
+
+    @MainActor
+    func _testAwaitWriteTimeout(for uuid: CBUUID, after timeout: TimeInterval = 0.01) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            guard registerPendingWrite(for: uuid, timeoutInterval: timeout, continuation: continuation) else {
+                continuation.resume(throwing: BLEError.operationInProgress)
+                return
+            }
+        }
+    }
+
+    func _testHasPendingRead(for uuid: CBUUID) -> Bool {
+        pendingReads[uuid] != nil
+    }
+
+    func _testHasPendingWrite(for uuid: CBUUID) -> Bool {
+        pendingWrites[uuid] != nil
+    }
 #endif
 
     func reconnectToKnownDevice(identifier: UUID) {
@@ -199,11 +244,10 @@ final class BLEManager: NSObject, @unchecked Sendable {
 
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.main.async {
-                if self.pendingReads[uuid] != nil {
+                guard self.registerPendingRead(for: uuid, continuation: continuation) else {
                     continuation.resume(throwing: BLEError.operationInProgress)
                     return
                 }
-                self.pendingReads[uuid] = continuation
                 peripheral.readValue(for: char)
             }
         }
@@ -219,11 +263,10 @@ final class BLEManager: NSObject, @unchecked Sendable {
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             DispatchQueue.main.async {
-                if self.pendingWrites[uuid] != nil || self.pendingWriteCallbacks[uuid] != nil {
+                guard self.registerPendingWrite(for: uuid, continuation: continuation) else {
                     continuation.resume(throwing: BLEError.operationInProgress)
                     return
                 }
-                self.pendingWrites[uuid] = continuation
                 peripheral.writeValue(data, for: char, type: .withResponse)
             }
         }
@@ -240,11 +283,10 @@ final class BLEManager: NSObject, @unchecked Sendable {
         }
 
         DispatchQueue.main.async {
-            if self.pendingWrites[uuid] != nil || self.pendingWriteCallbacks[uuid] != nil {
+            guard self.registerPendingWriteCallback(for: uuid, callback: completion) else {
                 completion(BLEError.operationInProgress)
                 return
             }
-            self.pendingWriteCallbacks[uuid] = completion
             peripheral.writeValue(data, for: char, type: .withResponse)
         }
     }
@@ -267,19 +309,108 @@ final class BLEManager: NSObject, @unchecked Sendable {
         }
     }
 
+    private func registerPendingRead(
+        for uuid: CBUUID,
+        timeoutInterval: TimeInterval? = nil,
+        continuation: CheckedContinuation<Data, Error>
+    ) -> Bool {
+        guard !hasPendingOperation(for: uuid) else { return false }
+
+        let timeoutWork = makeOperationTimeoutWork(kind: "read", uuid: uuid) { [weak self] in
+            guard let self,
+                  let pending = self.pendingReads.removeValue(forKey: uuid) else { return }
+            pending.continuation.resume(throwing: BLEError.timeout)
+        }
+        pendingReads[uuid] = PendingReadOperation(
+            continuation: continuation,
+            timeoutWork: timeoutWork
+        )
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + (timeoutInterval ?? characteristicOperationTimeout),
+            execute: timeoutWork
+        )
+        return true
+    }
+
+    private func registerPendingWrite(
+        for uuid: CBUUID,
+        timeoutInterval: TimeInterval? = nil,
+        continuation: CheckedContinuation<Void, Error>
+    ) -> Bool {
+        guard !hasPendingOperation(for: uuid) else { return false }
+
+        let timeoutWork = makeOperationTimeoutWork(kind: "write", uuid: uuid) { [weak self] in
+            guard let self,
+                  let pending = self.pendingWrites.removeValue(forKey: uuid) else { return }
+            pending.continuation.resume(throwing: BLEError.timeout)
+        }
+        pendingWrites[uuid] = PendingWriteOperation(
+            continuation: continuation,
+            timeoutWork: timeoutWork
+        )
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + (timeoutInterval ?? characteristicOperationTimeout),
+            execute: timeoutWork
+        )
+        return true
+    }
+
+    private func registerPendingWriteCallback(
+        for uuid: CBUUID,
+        timeoutInterval: TimeInterval? = nil,
+        callback: @escaping (Error?) -> Void
+    ) -> Bool {
+        guard !hasPendingOperation(for: uuid) else { return false }
+
+        let timeoutWork = makeOperationTimeoutWork(kind: "write callback", uuid: uuid) { [weak self] in
+            guard let self,
+                  let pending = self.pendingWriteCallbacks.removeValue(forKey: uuid) else { return }
+            pending.callback(BLEError.timeout)
+        }
+        pendingWriteCallbacks[uuid] = PendingWriteCallbackOperation(
+            callback: callback,
+            timeoutWork: timeoutWork
+        )
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + (timeoutInterval ?? characteristicOperationTimeout),
+            execute: timeoutWork
+        )
+        return true
+    }
+
+    private func makeOperationTimeoutWork(
+        kind: String,
+        uuid: CBUUID,
+        onTimeout: @escaping () -> Void
+    ) -> DispatchWorkItem {
+        DispatchWorkItem { [weak self] in
+            self?.logger.warning("\(kind, privacy: .public) timeout for characteristic \(uuid.uuidString, privacy: .public)")
+            onTimeout()
+        }
+    }
+
+    private func hasPendingOperation(for uuid: CBUUID) -> Bool {
+        pendingReads[uuid] != nil
+            || pendingWrites[uuid] != nil
+            || pendingWriteCallbacks[uuid] != nil
+    }
+
     private func failPendingContinuations() {
-        for (_, continuation) in pendingReads {
-            continuation.resume(throwing: BLEError.notConnected)
+        for (_, pending) in pendingReads {
+            pending.timeoutWork.cancel()
+            pending.continuation.resume(throwing: BLEError.notConnected)
         }
         pendingReads = [:]
 
-        for (_, continuation) in pendingWrites {
-            continuation.resume(throwing: BLEError.notConnected)
+        for (_, pending) in pendingWrites {
+            pending.timeoutWork.cancel()
+            pending.continuation.resume(throwing: BLEError.notConnected)
         }
         pendingWrites = [:]
 
-        for (_, callback) in pendingWriteCallbacks {
-            callback(BLEError.notConnected)
+        for (_, pending) in pendingWriteCallbacks {
+            pending.timeoutWork.cancel()
+            pending.callback(BLEError.notConnected)
         }
         pendingWriteCallbacks = [:]
 
@@ -593,13 +724,14 @@ extension BLEManager: CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         let uuid = characteristic.uuid
 
-        if let continuation = pendingReads.removeValue(forKey: uuid) {
+        if let pending = pendingReads.removeValue(forKey: uuid) {
+            pending.timeoutWork.cancel()
             if let error {
-                continuation.resume(throwing: error)
+                pending.continuation.resume(throwing: error)
             } else if let data = characteristic.value {
-                continuation.resume(returning: data)
+                pending.continuation.resume(returning: data)
             } else {
-                continuation.resume(throwing: BLEError.noData)
+                pending.continuation.resume(throwing: BLEError.noData)
             }
             return
         }
@@ -691,16 +823,18 @@ extension BLEManager: CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         let uuid = characteristic.uuid
 
-        if let callback = pendingWriteCallbacks.removeValue(forKey: uuid) {
-            callback(error)
+        if let pending = pendingWriteCallbacks.removeValue(forKey: uuid) {
+            pending.timeoutWork.cancel()
+            pending.callback(error)
             return
         }
 
-        if let continuation = pendingWrites.removeValue(forKey: uuid) {
+        if let pending = pendingWrites.removeValue(forKey: uuid) {
+            pending.timeoutWork.cancel()
             if let error {
-                continuation.resume(throwing: error)
+                pending.continuation.resume(throwing: error)
             } else {
-                continuation.resume()
+                pending.continuation.resume()
             }
         }
     }

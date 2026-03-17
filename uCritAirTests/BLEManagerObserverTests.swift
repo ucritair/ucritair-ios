@@ -1,3 +1,4 @@
+import CoreBluetooth
 import Testing
 @testable import uCritAir
 
@@ -44,5 +45,59 @@ struct BLEManagerObserverTests {
         manager._testEmitSensorUpdate(update)
         #expect(firstCount == 1)
         #expect(secondCount == 2)
+    }
+
+    @MainActor
+    @Test("Pending read operations time out and release the characteristic slot")
+    func testPendingReadTimeoutClearsSlot() async {
+        let manager = BLEManager()
+        let uuid = CBUUID(string: "1234")
+
+        let firstError = await captureError {
+            try await manager._testAwaitReadTimeout(for: uuid)
+        }
+        expectTimeout(firstError)
+        #expect(!manager._testHasPendingRead(for: uuid))
+
+        let secondError = await captureError {
+            try await manager._testAwaitReadTimeout(for: uuid)
+        }
+        expectTimeout(secondError)
+        #expect(!manager._testHasPendingRead(for: uuid))
+    }
+
+    @MainActor
+    @Test("Pending write operations time out and release the characteristic slot")
+    func testPendingWriteTimeoutClearsSlot() async {
+        let manager = BLEManager()
+        let uuid = CBUUID(string: "5678")
+
+        let firstError = await captureError {
+            try await manager._testAwaitWriteTimeout(for: uuid)
+        }
+        expectTimeout(firstError)
+        #expect(!manager._testHasPendingWrite(for: uuid))
+
+        let secondError = await captureError {
+            try await manager._testAwaitWriteTimeout(for: uuid)
+        }
+        expectTimeout(secondError)
+        #expect(!manager._testHasPendingWrite(for: uuid))
+    }
+
+    private func captureError(_ operation: () async throws -> Void) async -> Error? {
+        do {
+            try await operation()
+            return nil
+        } catch {
+            return error
+        }
+    }
+
+    private func expectTimeout(_ error: Error?) {
+        if case .timeout? = error as? BLEError {
+            return
+        }
+        #expect(Bool(false))
     }
 }
